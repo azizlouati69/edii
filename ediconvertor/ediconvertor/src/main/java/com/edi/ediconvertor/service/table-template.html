@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        th, td {
+            padding: 12px 20px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #4CAF50; /* Subtle green background for header */
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9; /* Light grey for even rows */
+        }
+        tr:hover {
+            background-color: #f1f1f1; /* Slight hover effect for better interactivity */
+        }
+        .header {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+<div class="header">Article Details</div>
+<table>
+    <thead>
+    <tr>
+        <th>Buyer Article Number</th>
+        <th>Buyer</th>
+        <th>Article Description</th>
+    </tr>
+    </thead>
+    <tbody>
+    <!-- DYNAMIC CONTENT GOES HERE -->
+    <!-- Loop through the data and insert rows here -->
+    </tbody>
+</table>
+</body>
+</html>

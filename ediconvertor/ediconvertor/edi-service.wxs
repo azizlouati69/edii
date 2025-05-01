@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+   <Product Id="*" Name="EDI Service" Language="1033" Version="1.0.0" Manufacturer="EDI" UpgradeCode="12345678-1234-1234-1234-123456789012">
+      <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
+      <MediaTemplate EmbedCab="yes" />
+      <Directory Id="TARGETDIR" Name="SourceDir">
+         <Directory Id="ProgramFilesFolder">
+            <Directory Id="INSTALLDIR" Name="EDI Service">
+               <Component Id="ServiceComponent" Guid="*">
+                  <File Id="JAR_FILE" Source="target/ediconvertor-0.0.1-SNAPSHOT.jar" KeyPath="yes" />
+                  <File Id="BAT_FILE" Source="run-edi-service.bat" />
+                  <File Id="SHORTCUT_FILE" Source="edi-service.exe">
+                     <Shortcut Id="ExeShortcut" Directory="ProgramMenuFolder" Name="EDI Service" Show="normal" WorkingDirectory="INSTALLDIR" />
+                  </File>
+               </Component>
+            </Directory>
+         </Directory>
+      </Directory>
+      <Feature Id="MainFeature" Title="EDI Service" Level="1">
+         <ComponentRef Id="ServiceComponent" />
+      </Feature>
+   </Product>
+</Wix>

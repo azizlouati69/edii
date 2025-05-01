@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ExternalStorageConfigurationManager" enabled="true" />
+  <component name="MavenProjectsManager">
+    <option name="originalFiles">
+      <list>
+        <option value="$PROJECT_DIR$/pom.xml" />
+        <option value="$USER_HOME$/Downloads/gateway (1)/gateway/pom.xml" />
+        <option value="$PROJECT_DIR$/gateway (1)/gateway/pom.xml" />
+        <option value="$PROJECT_DIR$/discovery/discovery/pom.xml" />
+        <option value="$PROJECT_DIR$/config-server/config-server/pom.xml" />
+        <option value="$PROJECT_DIR$/../EDIConvertor/pom.xml" />
+        <option value="$PROJECT_DIR$/ediconvertor/pom.xml" />
+        <option value="$PROJECT_DIR$/ediE/ediE/pom.xml" />
+        <option value="$PROJECT_DIR$/ediconvertor/ediconvertor/pom.xml" />
+        <option value="$PROJECT_DIR$/ftp-listener/ftp-listener/pom.xml" />
+        <option value="$PROJECT_DIR$/gateway/gateway/pom.xml" />
+        <option value="$PROJECT_DIR$/shared-library/pom.xml" />
+        <option value="$PROJECT_DIR$/Edi-dash/Edi-dash/pom.xml" />
+      </list>
+    </option>
+    <option name="ignoredFiles">
+      <set>
+        <option value="$USER_HOME$/Downloads/gateway (1)/gateway/pom.xml" />
+        <option value="$PROJECT_DIR$/../EDIConvertor/pom.xml" />
+      </set>
+    </option>
+  </component>
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_17" default="true" project-jdk-name="17" project-jdk-type="JavaSDK">
+    <output url="file://$PROJECT_DIR$/out" />
+  </component>
+</project>

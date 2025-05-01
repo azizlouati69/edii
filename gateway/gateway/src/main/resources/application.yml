@@ -1,0 +1,32 @@
+server:
+  port: 9999
+spring:
+  config:
+    import: optional:configserver:http://localhost:8888
+
+  application:
+    name: gateway
+eureka:
+  client:
+    service-url:
+      register-with-eureka: true
+      fetch-registry: true
+      defaultZone: http://localhost:8761/eureka
+  instance:
+    hostname: localhost
+
+
+
+logging:
+   level:
+     com.netflix.discovery: DEBUG
+     org.springframework.cloud: DEBUG
+
+
+management:
+  endpoints:
+
+    metrics.enabled: true
+    web:
+      exposure:
+        include: health,info

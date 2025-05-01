@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="Encoding">
+    <file url="file://$USER_HOME$/Downloads/gateway (1)/gateway/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/../EDIConvertor/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/Edi-dash/Edi-dash/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/config-server/config-server/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/discovery/discovery/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/ediE/ediE/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/ediconvertor/ediconvertor/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/ftp-listener/ftp-listener/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/gateway/gateway/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/shared-library/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/shared-library/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/src/main/resources" charset="UTF-8" />
+  </component>
+</project>
