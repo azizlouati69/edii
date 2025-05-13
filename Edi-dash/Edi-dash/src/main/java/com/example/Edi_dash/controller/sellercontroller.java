@@ -4,7 +4,9 @@ package com.example.Edi_dash.controller;
  import entities.model.seller;
 
 import com.example.Edi_dash.sevice.sellerservice;
-import org.springframework.web.bind.annotation.*;
+ import org.springframework.http.HttpStatus;
+ import org.springframework.http.ResponseEntity;
+ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
@@ -34,7 +36,13 @@ public class sellercontroller {
     public List<seller> searchByReceiverId(@RequestParam String receiverId) {
         return sellerservice.searchSellerByReceiverId(receiverId);
     }
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteSeller(@PathVariable Long id) {
 
+
+            sellerservice.deleteSeller(id);
+        return ResponseEntity.noContent().build();
+    }
     @GetMapping("/Id/{Id}")
     public Optional<seller> getSellerById(@PathVariable Long Id) {
         return sellerservice.getSellerById(Id);

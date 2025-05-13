@@ -1,10 +1,26 @@
 package com.example.Edi_dash.sevice;
 import com.example.Edi_dash.DTO.orderdto;
+import entities.model.firmitem;
+import entities.model.forecastitem;
 import entities.model.order;
+import lombok.extern.slf4j.Slf4j;
+import java.util.logging.Logger;
+import entities.model.seller;
+import entities.model.client;
 
+import entities.model.quantity;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.persistence.PersistenceContext;
+import jakarta.transaction.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import  repository.orderrepository;
+
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.DefaultTransactionDefinition;
+import repository.*;
 import org.springframework.stereotype.Service;
 
 import java.time.*;
@@ -14,18 +30,99 @@ import java.time.temporal.TemporalAdjusters;
 import java.time.temporal.WeekFields;
 import java.util.*;
 import java.util.stream.Collectors;
-
+@Transactional
 @Service
 public class orderservice {
-    private final orderrepository orderRepository;
-
-    public orderservice(orderrepository orderRepository) {
+    private static final Logger log = Logger.getLogger(orderservice.class.getName());
+    @Autowired
+    private PlatformTransactionManager transactionManager;
+    private static   orderrepository orderRepository;
+    private static forecastitemrepository forecastRepository ;
+    private static firmrepository firmRepository ;
+    private static quantityrepository quantityRepository ;
+    private static sellerrepository sellerRepository ;
+    private static clientrepository  clientRepository ;
+    @PersistenceContext
+    private   EntityManager entityManager;
+    public orderservice(orderrepository orderRepository,quantityrepository quantityRepository,
+                         forecastitemrepository forecastRepository,
+                         firmrepository firmRepository,sellerrepository sellerRepository,clientrepository clientRepository) {
         this.orderRepository = orderRepository;
+        this.forecastRepository = forecastRepository;
+        this.firmRepository = firmRepository;
+        this.quantityRepository = quantityRepository;
+        this.sellerRepository = sellerRepository;
+        this.clientRepository = clientRepository;
     }
     public  order  getOrderByDocumentId(String  docId) {
         return orderRepository.findByDocumentId(docId).get(0);
 
     }
+    public Optional<quantity> getqById(Long id) {
+        return quantityRepository.findById(id);
+    }
+
+
+    public void deleteOrder(Long orderId) {
+        order orderToDelete = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+
+        client associatedClient = orderToDelete.getClient();
+        seller associatedSeller = orderToDelete.getSeller();
+
+        // Step 1: Remove firmItems
+        if (orderToDelete.getFirmItems() != null) {
+            for (firmitem firmItem : new ArrayList<>(orderToDelete.getFirmItems())) {
+                firmItem.setOrder(null);
+            }
+            orderToDelete.getFirmItems().clear();
+        }
+
+        // Step 2: Remove forecastItems
+        if (orderToDelete.getForecastItems() != null) {
+            for (forecastitem forecastItem : new ArrayList<>(orderToDelete.getForecastItems())) {
+                forecastItem.setOrder(null);
+            }
+            orderToDelete.getForecastItems().clear();
+        }
+
+        // Step 3: Break quantity
+        if (orderToDelete.getQuantity() != null) {
+            orderToDelete.setQuantity(null);
+        }
+
+        // Step 4: Remove order from client and seller
+        if (associatedClient != null) {
+            associatedClient.getOrders().remove(orderToDelete);
+        }
+        if (associatedSeller != null) {
+            associatedSeller.getOrders().remove(orderToDelete);
+        }
+
+        // Step 5: Delete the order
+        orderRepository.delete(orderToDelete);
+
+        // Step 6: If client has no more orders, delete client
+        if (associatedClient != null && associatedClient.getOrders().isEmpty()) {
+            for (seller seller : new ArrayList<>(associatedClient.getSellers())) {
+                seller.getClients().remove(associatedClient);
+                sellerRepository.save(seller);
+            }
+            associatedClient.getSellers().clear();
+            clientRepository.delete(associatedClient);
+        }
+
+        // Step 7: If seller has no more orders, delete seller
+        if (associatedSeller != null && associatedSeller.getOrders().isEmpty()) {
+            for (client client : new ArrayList<>(associatedSeller.getClients())) {
+                client.getSellers().remove(associatedSeller);
+                clientRepository.save(client);
+            }
+            associatedSeller.getClients().clear();
+            sellerRepository.delete(associatedSeller);
+        }
+    }
+
     public Long getOrdersThisMonth() {
         List<order> allOrders = orderRepository.findAll();
 
@@ -123,7 +220,7 @@ public class orderservice {
 
         LocalDate today = LocalDate.now();
         // Monday as the start of the week
-        LocalDate startOfWeek = today.with(java.time.DayOfWeek.MONDAY);
+        LocalDate startOfWeek = today.with(DayOfWeek.MONDAY);
 
         return allOrders.stream()
                 .filter(o -> {
@@ -161,7 +258,7 @@ public class orderservice {
     }
 
     public List<order> getOrdersForThisWeek() {
-        LocalDateTime startOfWeek = LocalDate.now().with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.SUNDAY)).atStartOfDay();
+        LocalDateTime startOfWeek = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY)).atStartOfDay();
         LocalDateTime endOfWeek = startOfWeek.plusDays(6).withHour(23).withMinute(59).withSecond(59).withNano(999999999);
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-ddHHmm");
@@ -228,7 +325,7 @@ public class orderservice {
                 .count();
     }
     public Long getTotalOrdersThisYear() {
-        String currentYear = String.valueOf(java.time.Year.now().getValue());
+        String currentYear = String.valueOf(Year.now().getValue());
         return orderRepository.getTotalOrdersThisYear(currentYear);
     }
 

@@ -26,7 +26,7 @@ public class client {
     private String senderId;
     private String buyerIdentifier;
 
-    @OneToMany(mappedBy = "client", cascade = CascadeType.ALL, orphanRemoval = true , fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "client", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     private List<order> orders = new ArrayList<>();
 

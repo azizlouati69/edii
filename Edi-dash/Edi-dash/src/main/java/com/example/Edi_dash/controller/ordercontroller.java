@@ -4,6 +4,8 @@ import com.example.Edi_dash.DTO.orderdto;
 import entities.model.order;
 
 import com.example.Edi_dash.sevice.orderservice;
+import jakarta.persistence.EntityNotFoundException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,6 +29,10 @@ public class ordercontroller {
     @GetMapping("/DocumentId/{documentid}")
     public order getOrderByDocumentId(@PathVariable String documentid) {
         return   orderService.getOrderByDocumentId(documentid);
+    }
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteOrder(@PathVariable Long id) {
+        orderService.deleteOrder(id);        return ResponseEntity.noContent().build(); // 204 No Content
     }
     @GetMapping("/this-year")
     public Long getOrdersThisYear() {

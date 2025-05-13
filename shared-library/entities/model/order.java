@@ -30,7 +30,7 @@ public class order {
     private String placeofdischarge;
     private String internaldestination;
 
-    @OneToOne(cascade = CascadeType.ALL)
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "quantity_id", referencedColumnName = "id")
     @JsonManagedReference
     private quantity quantity;

@@ -5,8 +5,12 @@ import com.example.Edi_dash.DTO.clientdto;
 import com.example.Edi_dash.DTO.recentclientdto;
 import entities.model.client;
 import com.example.Edi_dash.sevice.clientservice;
+import entities.model.firmitem;
+import entities.model.forecastitem;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import repository.firmrepository;
+import repository.forecastitemrepository;
 
 import java.util.List;
 import java.util.Optional;
@@ -17,8 +21,11 @@ public class clientcontroller {
 
     private final clientservice clientService;
 
-    public clientcontroller(clientservice clientService) {
+
+    public clientcontroller(clientservice clientService  ) {
         this.clientService = clientService;
+
+
     }
     @GetMapping("/top-this-month")
     public List<clientdto> getTop3ClientsThisMonth() {
@@ -96,5 +103,11 @@ public class clientcontroller {
     @GetMapping("/search/buyerIdentifier")
     public List<client> searchByBuyerIdentifier(@RequestParam String buyerIdentifier) {
         return clientService.searchByBuyerIdentifier(buyerIdentifier);
+    }
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> deleteClient(@PathVariable Long id) {
+
+            clientService.deleteClient(id); // Call the delete service method
+        return ResponseEntity.noContent().build();
     }
 }

@@ -16,7 +16,7 @@ public class quantity {
     private String receivingDate;
     private String deliveryNoteDocNumber;
     private String cumulativeReceivedQuantity;
-    @OneToOne(mappedBy = "quantity"  ,  cascade = CascadeType.ALL  )
+    @OneToOne(mappedBy = "quantity"   )
     @JsonBackReference
     private order order;
     public Long getId() {

@@ -23,7 +23,7 @@ public class seller {
     private Long id;
     private String receiverId;
     private String  name = "Vernicolor";
-    @OneToMany(mappedBy = "seller", cascade = CascadeType.ALL, orphanRemoval = true , fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "seller", cascade = CascadeType.ALL, orphanRemoval = true)
      @JsonIgnoreProperties({ "firmItems", "forecastItems" })
     private List<order> orders = new ArrayList<>();
     @ManyToMany

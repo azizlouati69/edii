@@ -225,29 +225,43 @@ public class clientservice {
 
 
     @Transactional
-    public void deleteClientsByBuyerIdentifier(String buyerIdentifier) {
-        // Fetch clients by buyer identifier (it will return a list)
-        List<client> clients = clientRepository.findByBuyerIdentifier(buyerIdentifier);
+    public void deleteClient(Long clientId) {
+        // Step 1: Find the client or throw exception
+        client clientToDelete = clientRepository.findById(clientId)
+                .orElseThrow(() -> new RuntimeException("Client not found"));
 
-        // Log the list to see if clients are being fetched
-        System.out.println("Found clients: " + clients);  // Add logging for debugging
+        // Step 2: Save a copy of associated sellers (for later check)
+        List<seller> associatedSellers = new ArrayList<>(clientToDelete.getSellers());
 
-        if (!clients.isEmpty()) {
-            // Iterate over the list of clients and process each one
-            for (client client : clients) {
-                // Save all associated orders if they are in transient state (not saved yet)
-                for (order order : client.getOrders()) {
-                    if (order.getId() == null) {
-                        // Persist unsaved orders
-                        orderRepository.save(order);
-                    }
+        // Step 3: Break the ManyToMany relationship (client <-> sellers)
+        for (seller seller : associatedSellers) {
+            seller.getClients().remove(clientToDelete);
+            sellerRepository.save(seller);
+        }
+        clientToDelete.getSellers().clear();
+
+        // Step 4: Delete related orders (with firmitems & forecastitems via cascade)
+        for (order order : new ArrayList<>(clientToDelete.getOrders())) {
+            orderRepository.delete(order);
+        }
+        clientToDelete.getOrders().clear();
+
+        // Step 5: Delete the client
+        clientRepository.delete(clientToDelete);
+
+        // Step 6: Delete orphaned sellers
+        for (seller seller : associatedSellers) {
+            if (seller.getClients().isEmpty()) {
+                // Disassociate and delete seller's orders (just in case)
+                for (order order : new ArrayList<>(seller.getOrders())) {
+                    orderRepository.delete(order);
                 }
-                // Now delete the client (and its orders if CascadeType.ALL is set)
-                clientRepository.delete(client);
+                seller.getOrders().clear();
+                sellerRepository.delete(seller);
             }
-        } else {
-            throw new IllegalArgumentException("No clients found with buyerIdentifier " + buyerIdentifier);
         }
     }
+
+
 
 }
