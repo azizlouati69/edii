@@ -27,4 +27,9 @@ public class AuthController {
     public ResponseEntity<AuthResponse> login(@RequestBody AuthRequest request) {
         return ResponseEntity.ok(authService.authenticate(request));
     }
+    @GetMapping("/loginn")
+    public ResponseEntity<AuthResponse> login() {
+        System.out.println("hello");
+        return null;
+    }
 }

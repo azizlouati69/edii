@@ -1,6 +1,8 @@
 server:
   port: 9090
 
+
+
 spring:
 
   application:
@@ -19,12 +21,8 @@ spring:
         format_sql: true
 
 
-logging:
-  level:
-    org.hibernate.event: TRACE
-    org.hibernate.persister.entity: DEBUG
-    org.hibernate.action.internal: DEBUG
-    org.hibernate.SQL: DEBUG
+jwt:
+  secret: "Y2oTGqRyIT8Yz3s/fYAz5j2R3tVnSjbLG2l9EXtYiAnAYs1U1xB9bb08a9YYIXXQ75qVXAxu6v1yixF0UuUuWA=="
 eureka:
   instance:
     hostname: localhost   # Hostname for the instance
@@ -39,12 +37,12 @@ management:
     web:
       exposure:
         include: health,info
-  logging:
+logging:
     level:
-      org:
-        hibernate:
-          SQL: DEBUG
-          type:
-            descriptor:
-              sql:
-                BasicBinder: TRACE
+      com.netflix.discovery: DEBUG
+      org.springframework.cloud: DEBUG
+      org.springframework.web.filter: DEBUG
+
+
+      org.springframework.security: DEBUG
+      org.springframework.web: DEBUG

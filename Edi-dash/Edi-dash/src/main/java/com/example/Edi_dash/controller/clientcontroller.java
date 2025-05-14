@@ -1,6 +1,7 @@
 package com.example.Edi_dash.controller;
 
 
+import com.example.AuthService.DTO.AuthResponse;
 import com.example.Edi_dash.DTO.clientdto;
 import com.example.Edi_dash.DTO.recentclientdto;
 import entities.model.client;
@@ -26,6 +27,11 @@ public class clientcontroller {
         this.clientService = clientService;
 
 
+    }
+    @GetMapping("/loginn")
+    public ResponseEntity<AuthResponse> login() {
+        System.out.println("hello");
+        return null;
     }
     @GetMapping("/top-this-month")
     public List<clientdto> getTop3ClientsThisMonth() {

@@ -1,4 +1,6 @@
-package com.example.AuthService.service;
+package com.example.Edi_dash.security;
+
+
 
 import com.example.AuthService.entity.user;
 import io.jsonwebtoken.*;

@@ -22,7 +22,7 @@ spring:
 
 # JWT Configuration
 jwt:
-  secret: "U2FsdGVkX19XQ2QwV9PdW5aNEmuIYmcxuZbxeINq0fs="
+  secret: "Y2oTGqRyIT8Yz3s/fYAz5j2R3tVnSjbLG2l9EXtYiAnAYs1U1xB9bb08a9YYIXXQ75qVXAxu6v1yixF0UuUuWA=="
   expirationMs: 3600000 # 1 hour expiration (in milliseconds)
 
 logging:
