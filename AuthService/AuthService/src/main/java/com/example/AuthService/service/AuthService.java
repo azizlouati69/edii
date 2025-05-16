@@ -16,7 +16,7 @@ public class AuthService {
     @Qualifier("securityPasswordEncoder")
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
-
+    private final TokenStore refreshTokenStore;
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new IllegalArgumentException("Nom d'utilisateur déjà pris.");
@@ -25,10 +25,15 @@ public class AuthService {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new IllegalArgumentException("Adresse email déjà utilisée.");
         }
+        if (userRepository.existsByPhone(request.getPhone())) {
+            throw new IllegalArgumentException("Numéro de telephone déjà utilisé.");
+        }
+
 
         user newUser = user.builder()
                 .username(request.getUsername())
                 .email(request.getEmail())
+                .phone(request.getPhone())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .firstname(request.getFirstname())
                 .lastname(request.getLastname())
@@ -38,11 +43,19 @@ public class AuthService {
 
         userRepository.save(newUser);
 
-        String token = jwtService.generateToken(newUser);
-        return new AuthResponse(token);
+        // Generate both tokens
+        String accessToken = jwtService.generateAccessToken(newUser);
+        String refreshToken = jwtService.generateRefreshToken(newUser);
+        refreshTokenStore.put(newUser.getUsername(), refreshToken); // ✅ Store it
+
+        // Return both in AuthResponse
+        return new AuthResponse(accessToken, refreshToken);
     }
 
-
+    public user loadUserByUsername(String username) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+    }
     public AuthResponse authenticate(AuthRequest request) {
         user user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("Compte inexistant"));
@@ -51,7 +64,12 @@ public class AuthService {
             throw new RuntimeException("Mot de passe incorrect");
         }
 
-        String token = jwtService.generateToken(user);
-        return new AuthResponse(token);
+        // Generate both tokens
+        String accessToken = jwtService.generateAccessToken(user);
+        String refreshToken = jwtService.generateRefreshToken(user);
+        refreshTokenStore.put(user.getUsername(), refreshToken); // ✅ Store it
+
+        // Return both tokens
+        return new AuthResponse(accessToken, refreshToken);
     }
 }

@@ -32,7 +32,7 @@ public class SecurityConfig {
     @Order(2) // Make sure it's executed after the primary one
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .securityMatcher("/**") // ✅ Applies to everything not matched above
+                  // ✅ Applies to everything not matched above
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth

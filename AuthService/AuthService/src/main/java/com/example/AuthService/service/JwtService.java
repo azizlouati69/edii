@@ -17,22 +17,32 @@ import java.util.Date;
 @RequiredArgsConstructor
 public class JwtService {
 
+    @Value("${jwt.secret}")
+    private String secretKey;
+
     private SecretKey getSignInKey() {
-        String secretKey = "Y2oTGqRyIT8Yz3s/fYAz5j2R3tVnSjbLG2l9EXtYiAnAYs1U1xB9bb08a9YYIXXQ75qVXAxu6v1yixF0UuUuWA==";
         byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
-    public String generateToken(user user) {
-        // Make sure the expiration time is correct (in milliseconds)
-        long jwtExpirationMs = 3600000;  // Example: 1 hour expiration time
+    public String generateAccessToken(user user) {
+        long accessTokenExpiration = 60 * 60 * 1000; // 30 minutes
+        return generateToken(user.getUsername(), accessTokenExpiration, "access");
+    }
 
+    public String generateRefreshToken(user user) {
+        long refreshTokenExpiration = 7 * 24 * 60 * 60 * 1000; // 7 days
+        return generateToken(user.getUsername(), refreshTokenExpiration, "refresh");
+    }
+
+    private String generateToken(String username, long expirationMillis, String type) {
         return Jwts.builder()
-                .setSubject(user.getUsername())  // Set the subject to the username
-                .setIssuedAt(new Date())  // Set the current timestamp
-                .setExpiration(new Date(System.currentTimeMillis() + jwtExpirationMs))  // Set the expiration time
-                .signWith(getSignInKey(), SignatureAlgorithm.HS512)  // Sign the token with the secret key
-                .compact();  // Build and return the token
+                .setSubject(username)
+                .claim("type", type)
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + expirationMillis))
+                .signWith(getSignInKey(), SignatureAlgorithm.HS512)
+                .compact();
     }
 
     public boolean validateToken(String token) {
@@ -55,7 +65,14 @@ public class JwtService {
                 .getBody()
                 .getSubject();
     }
-
+    public String extractType(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(getSignInKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .get("type", String.class);
+    }
     public boolean isTokenExpired(String token) {
         return extractExpiration(token).before(new Date());
     }
