@@ -1,6 +1,8 @@
 package com.edi.ediconvertor.service;
 
+import com.edi.ediconvertor.config.EdiconvertorConfig;
 import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
@@ -59,23 +61,14 @@ import java.util.*;
 public class FileConversionService {
 
 
+    private static EdiconvertorConfig EdiconvertorConfig;
 
-    @Value("${paths.output}")
-    private String outputPath;
-    private static String staticOutputPath;
-    @PostConstruct
-    public void init() {
-        staticOutputPath = outputPath;
 
+
+    @Autowired
+    public FileConversionService(EdiconvertorConfig EdiconvertorConfig) {
+        this.EdiconvertorConfig = EdiconvertorConfig;
     }
-
-
-
-    public static String getOutputPath() {
-        return staticOutputPath;
-    }
-
-
         public static ArrayList<Map<String, String>> remove_dup(ArrayList<Map<String, String>> l) {
             ArrayList<Map<String, String>> l1 = new ArrayList<>();
 
@@ -107,7 +100,6 @@ public class FileConversionService {
     public static Map<String, Object> decryptFile(String di, String filename) {
         Map<String, Object> k = new LinkedHashMap<>();
         try {
-
             File file = new File(di + "/" + filename);
             BufferedReader reader = new BufferedReader(new FileReader(file, StandardCharsets.UTF_8));
             StringBuilder content = new StringBuilder();
@@ -118,607 +110,80 @@ public class FileConversionService {
             }
 
             String txt = content.toString();
-            if (txt.contains("UNOA:1"))
-                if(txt.contains("UNA:+,?")){
+            if (!content.toString().isEmpty() && txt.contains("DELFOR")) {
+                if (txt.contains("UNOA:1")) {
+                    if (txt.contains("UNA:+,?")) {
+                        String sender_id = txt.substring(txt.indexOf("UNOA:1+") + "UNOA:1+".length(),
+                                txt.indexOf(":", txt.indexOf("UNOA:1+") + "UNOA:1+".length()));
+                        String receiver_id = txt.substring(txt.indexOf(sender_id) + sender_id.length() + 4,
+                                txt.indexOf("+", txt.indexOf(sender_id) + sender_id.length() + 4));
+                        String ref_file = txt.substring(txt.indexOf("UNZ+") + "UNZ+".length(),
+                                txt.indexOf("'", txt.indexOf("UNZ+") + "UNZ+".length()));
+                        String id_file = null;
+                        int startndex = txt.indexOf("UNOA:1+");
 
-                    String sender_id = txt.substring(txt.indexOf("UNOA:1+") + "UNOA:1+".length(),
-                            txt.indexOf(":", txt.indexOf("UNOA:1+") + "UNOA:1+".length()));
-                    String receiver_id = txt.substring(txt.indexOf(sender_id) + sender_id.length() + 4,
-                            txt.indexOf("+", txt.indexOf(sender_id) + sender_id.length() + 4));
-                    String ref_file = txt.substring(txt.indexOf("UNZ+") + "UNZ+".length(),
-                            txt.indexOf("'", txt.indexOf("UNZ+") + "UNZ+".length()));
-                    String id_file = null;
-                    int startndex = txt.indexOf("UNOA:1+");
-
-                    if (startndex != -1) {
-                        startndex += "UNOA:1+".length();
-
-
-                        int firstColon = txt.indexOf(":", startndex);
-
-                        if (firstColon != -1) {
-
-                            int secondColon = txt.indexOf(":", firstColon + 1);
-
-                            if (secondColon != -1) {
-
-                                int plusIndex = txt.indexOf("+", secondColon);
-
-                                if (plusIndex != -1) {
-
-                                    id_file = txt.substring(secondColon + 1, plusIndex);
-                                } else {
-
-                                    id_file = txt.substring(secondColon + 1);
-                                }
-                            }
-                        }
-                    }
-                    String dateDocument = txt.substring(txt.indexOf(":", txt.indexOf("BGM")) + 1, txt.indexOf(":", txt.indexOf(":", txt.indexOf("BGM")) + 1));
-
-                    dateDocument = dateDocument.substring(0, 4) + "-" + dateDocument.substring(4, 6) + "-" + dateDocument.substring(6);
-                    int buyerStartIndex = txt.indexOf("NAD+BY+") + "NAD+BY+".length();
-                    int buyerEndIndex = txt.indexOf(":", buyerStartIndex);
-                    String buyer = txt.substring(buyerStartIndex, buyerEndIndex);
-                    int shiptoStartIndex = txt.indexOf("NAD+CN+") + "NAD+CN+".length();
-                    int shiptoEndIndex = txt.indexOf(":", shiptoStartIndex);
-                    String shipto = txt.substring(shiptoStartIndex, shiptoEndIndex);
-                    k.put("rec_id", receiver_id);
-                    k.put("sen_id", sender_id);
-                    k.put("ref_file", ref_file);
-                    k.put("id_file", id_file);
-
-                    txt = txt.substring(txt.indexOf("LIN+++"));
-                    while (txt.contains("LIN+++")) {
-                        txt = txt.substring(txt.indexOf("LIN+++"));
-                        int nextndex = txt.indexOf("LIN+++", "LIN+++".length()); // Find the next "LIN+++"
-                        String txt1;
-
-                        if (nextndex != -1) {
-                            txt1 = txt.substring(0, nextndex); // Extract from current "LIN+++" to next "LIN+++"
-                            txt = txt.substring(nextndex); // Move to the next "LIN+++"
-                        } else {
-                            txt1 = txt; // Last section if no more "LIN+++"
-                            txt = ""; // Exit loop
-                        }
-                        int documentIdStart = txt1.indexOf("LIN+++") + "LIN+++".length();
-                        int documentIdEnd = txt1.indexOf(":", documentIdStart);
-                        String document_id = txt1.substring(documentIdStart, documentIdEnd);
-                        String article_description = txt1.substring(txt1.indexOf("IMD+++:::") + "IMD+++:::".length(), txt1.indexOf("'", txt1.indexOf("IMD+++:::")));
-                        String loc_id = txt1.substring(txt1.indexOf("LOC+11+") + "LOC+11+".length(), txt1.indexOf("'", txt1.indexOf("LOC+11+")));
-                        String document_reference_number_order = txt1.substring(txt1.indexOf("RFF+ON:") + "RFF+ON:".length(), txt1.indexOf("'", txt1.indexOf("RFF+ON:")));
-                        String pce_doc_cumul = null;
-                        int x = txt1.indexOf("QTY+70:");
-
-                        if (x != -1) {
-                            int start = x + "QTY+70:".length();
-                            int end = txt1.indexOf(":", start);
-
-                            if (end != -1) {
-                                pce_doc_cumul = txt1.substring(start, end);
-                            } else {
-                                pce_doc_cumul = txt1.substring(start);
-                            }
-                        }
-                        String int_destination = null;
-                        int y = txt1.indexOf("LOC+159+");
-
-                        if (y != -1) {
-                            int start = y + "LOC+159+".length();
-                            int end = txt1.indexOf("'", start);
-
-                            if (end != -1) {
-                                int_destination = txt1.substring(start, end);
-                            } else {
-                                int_destination = txt1.substring(start);
-                            }
-                        }
-
-                        ArrayList<Map<String, String>> docNumbersList = new ArrayList<>();
-                        int b = txt1.indexOf("RFF+AAK");
-                        String doc_numbers = null;
-                        if (b != -1 && b >= 5) {
-                            doc_numbers = txt1.substring(b - 5);
-
-                        } else {
-                            System.out.println("'RFF+AAK' not found  ");
-                        }
-                        while ( doc_numbers!= null
-                                && doc_numbers.contains("RFF+AAK")) {
-                            int rffIndexx = doc_numbers.indexOf("RFF+AAK");
-                            int colonIndexx = doc_numbers.lastIndexOf(":", rffIndexx);
-
-                            String doc_number_pce = doc_numbers.substring(colonIndexx + 1, rffIndexx);
-                            doc_number_pce = doc_number_pce.replaceAll("[^\\d]", "");
-                            int colonIndex = doc_numbers.indexOf(':', 40);
-                            String doc_number_1 = doc_numbers.substring(0, colonIndex);
-                            int colonIndex1 = doc_number_1.indexOf(':', 2);
-                            int quoteIndex = doc_number_1.indexOf('\'', 8);
-                            String docNumber1Id = doc_number_1.substring(colonIndex1 + 1, quoteIndex);
-
-                            int startDate = doc_number_1.indexOf(docNumber1Id) + docNumber1Id.length() + 8;
-                            int endDate = startDate + 8;
-                            String docNumber1Date = doc_number_1.substring(startDate, endDate);
-                            doc_numbers = doc_numbers.substring(doc_number_1.length());
-
-                            int index = doc_numbers.indexOf("RFF+AAK");
-
-                            if (index >= 5) {
-                                doc_numbers = doc_numbers.substring(index - 5);
-                            }
-                            boolean containsAlpha = false;
-                            for (char c : docNumber1Id.toCharArray()) {
-                                if (Character.isAlphabetic(c)) {
-
-                                    containsAlpha = true;
-                                    break;
-                                }
-                            }
-                            if (containsAlpha) {
-
-                                Map<String, String> docData = new HashMap<>();
-                                docData.put("pce", doc_number_pce);
-                                docData.put("doc_id", docNumber1Id);
-                                docData.put("doc_date", docNumber1Date);
-                                docNumbersList.add(docData);
-
-                            }
-
-                        }
-
-                        ArrayList<Map<String, String>> firmList = new ArrayList<>();
-                        if (txt1.contains("SCC+1++F")) {
-
-                            if (txt1.contains("SCC+4++F")) {
-                                String firm1 = txt1.substring(txt1.indexOf("SCC+1++F"));
-
-                                while (firm1.contains("SCC+1++F")) {
-                                    int startIndex = firm1.indexOf("SCC+1++F");
-                                    int endIndex = firm1.indexOf("SCC+4++F") + 8;
-                                    String firm = firm1.substring(startIndex, endIndex);
-
-                                    firm1 = firm1.substring(firm.length());
-
-                                    int nextIndex = firm1.indexOf("SCC+1++F");
-                                    if (nextIndex != -1) {
-                                        firm1 = firm1.substring(nextIndex);
-                                    }
-
-                                    while (firm.contains(":")) {
-                                        int colonIndex = firm.indexOf(":");
-                                        String x1 = firm.substring(0, colonIndex + 1);
-                                        firm = firm.substring(x1.length());
-                                        colonIndex = firm.indexOf(":");
-                                        String pce = firm.substring(0, colonIndex + 1);
-                                        firm = firm.substring(pce.length());
-                                        pce = pce.replaceAll("[^0-9]", "");
-
-                                        int colonIndex2 = firm.indexOf(":");
-                                        String x3 = firm.substring(0, colonIndex2 + 1);
-                                        firm = firm.substring(x3.length());
-
-                                        colonIndex2 = firm.indexOf(":");
-                                        String dateafter = firm.substring(0, colonIndex2 + 1);
-                                        firm = firm.substring(dateafter.length());
-                                        dateafter = dateafter.replaceAll("[^0-9]", "");
-                                        int colonIndex3 = firm.indexOf(":");
-                                        String x4 = firm.substring(0, colonIndex3 + 1);
-                                        firm = firm.substring(x4.length());
-                                        colonIndex3 = firm.indexOf(":");
-                                        String datebefore = firm.substring(0, colonIndex3 + 1);
-                                        firm = firm.substring(datebefore.length());
-                                        datebefore = datebefore.replaceAll("[^0-9]", "");
-                                        if (!pce.equals("0")) {
-                                            Map<String, String> dataFirm = new HashMap<>();
-                                            dataFirm.put("pce", pce);
-                                            dataFirm.put("databefore", toDate(datebefore));
-                                            dataFirm.put("dateafter", toDate(dateafter));
-
-                                            firmList.add(dataFirm);
-                                        }
-
+                        if (startndex != -1) {
+                            startndex += "UNOA:1+".length();
+                            int firstColon = txt.indexOf(":", startndex);
+                            if (firstColon != -1) {
+                                int secondColon = txt.indexOf(":", firstColon + 1);
+                                if (secondColon != -1) {
+                                    int plusIndex = txt.indexOf("+", secondColon);
+                                    if (plusIndex != -1) {
+                                        id_file = txt.substring(secondColon + 1, plusIndex);
+                                    } else {
+                                        id_file = txt.substring(secondColon + 1);
                                     }
                                 }
-
-                            }
-
-                        }
-
-
-                        ArrayList<Map<String, String>> forecastList = new ArrayList<>();
-                        if (txt1.contains("SCC+4++F")) {
-                            String forecast = txt1.substring(txt1.indexOf("SCC+4++F") + 9);
-
-
-
-
-
-                            forecast = forecast.trim();
-                            while (forecast.contains(":")) {
-                                String x1 = forecast.substring(0, forecast.indexOf(":") + 1);
-                                forecast = forecast.substring(x1.length());
-
-                                String pce = forecast.substring(0, forecast.indexOf(":") + 1);
-                                forecast = forecast.substring(pce.length());
-
-                                pce = pce.replaceAll("[^0-9]", "");
-
-                                String x3 = forecast.substring(0, forecast.indexOf(":") + 1);
-                                forecast = forecast.substring(x3.length());
-
-                                String datebefore = forecast.substring(0, forecast.indexOf(":") + 1);
-                                forecast = forecast.substring(datebefore.length());
-
-                                datebefore = datebefore.replaceAll("[^0-9]", "");
-
-                                String x4 = forecast.substring(0, forecast.indexOf(":") + 1);
-                                forecast = forecast.substring(x4.length());
-
-                                String dateafter = forecast.substring(0, forecast.indexOf(":") + 1);
-                                forecast = forecast.substring(dateafter.length());
-
-                                dateafter = dateafter.replaceAll("[^0-9]", "");
-
-                                if (!pce.equals("0")) {
-                                    Map<String, String> dataforecast = new HashMap<>();
-                                    dataforecast.put("pce", pce);
-                                    dataforecast.put("databefore", toDate(dateafter));
-                                    dataforecast.put("dateafter", toDate(datebefore));
-
-                                    forecastList.add(dataforecast);
-                                }
-                            }
-
-                        }
-
-
-
-                        String articleRef = txt1.substring(txt1.indexOf("RFF+AAN:") + 8, txt1.indexOf("'", txt1.indexOf("RFF+AAN:") + 8));
-
-
-
-                        List<Map<String, String>> firmListDistinct = remove_dup(firmList);
-                        List<Map<String, String>> forecastListDistinct = remove_dup(forecastList);
-
-                        firmListDistinct.sort(Comparator.comparing(item -> item.get("dateafter")));
-                        forecastListDistinct.sort(Comparator.comparing(item -> item.get("dateafter")));
-
-
-                        Map<String, Object> l = new HashMap<>();
-                        l.put("art_ref", articleRef);
-                        l.put("date_doc", dateDocument);
-                        l.put("doc_id", document_id);
-                        l.put("article_description", article_description);
-                        l.put("loc_id", loc_id);
-                        l.put("doc_ref_num_order", document_reference_number_order);
-                        l.put("pce_doc_cumul", pce_doc_cumul);
-                        l.put("internal destination", int_destination);
-                        l.put("doc_numbers_list", docNumbersList);
-                        l.put("firmlist", firmListDistinct);
-                        l.put("forecastlist", forecastListDistinct);
-                        l.put("buyer", buyer);
-                        l.put("shipto", shipto);
-
-                        k.put((String) l.get("doc_id"), l);
-
-
-                    }
-
-                }
-
-
-
-
-
-
-                else{
-
-                    String sender_id = txt.substring(txt.indexOf("UNOA:1+") + "UNOA:1+".length(),
-                            txt.indexOf("+", txt.indexOf("UNOA:1+") + "UNOA:1+".length()));
-                    String receiver_id = txt.substring(txt.indexOf(sender_id) + sender_id.length() + 1,
-                            txt.indexOf("+", txt.indexOf(sender_id) + sender_id.length() + 1));
-                    String ref_file = txt.substring(txt.indexOf("UNZ+") + "UNZ+".length(),
-                            txt.indexOf("'", txt.indexOf("UNZ+") + "UNZ+".length()));
-                    String id_file = txt.substring(txt.indexOf(":", txt.indexOf("UNOA:1+") + "UNOA:1+".length()) + 1,
-                            txt.indexOf("+", txt.indexOf(":", txt.indexOf("UNOA:1+") + "UNOA:1+".length())));
-
-                    k.put("rec_id", receiver_id);
-                    k.put("sen_id", sender_id);
-                    k.put("ref_file", ref_file);
-                    k.put("id_file", id_file);
-
-                    txt = txt.substring(txt.indexOf("UNH+"));
-                    while (txt.contains("UNH+")) {
-                        txt = txt.substring(txt.indexOf("UNH+"));
-                        String txt1 = txt.substring(txt.indexOf("UNH+"), txt.indexOf("UNT+") + "UNT+".length());
-                        txt = txt.substring(txt.indexOf("UNT+") + "UNT+".length());
-                        int documentIdStart = txt1.indexOf("LIN+++") + "LIN+++".length();
-                        int documentIdEnd = txt1.indexOf(":", documentIdStart);
-                        String document_id = txt1.substring(documentIdStart, documentIdEnd);
-                        String article_description = txt1.substring(txt1.indexOf("IMD+++:::") + "IMD+++:::".length(), txt1.indexOf("'", txt1.indexOf("IMD+++:::")));
-                        String loc_id = txt1.substring(txt1.indexOf("LOC+11+") + "LOC+11+".length(), txt1.indexOf("'", txt1.indexOf("LOC+11+")));
-                        String document_reference_number_order = txt1.substring(txt1.indexOf("RFF+ON:") + "RFF+ON:".length(), txt1.indexOf("'", txt1.indexOf("RFF+ON:")));
-                        String pce_doc_cumul = null;
-                        int x = txt1.indexOf("QTY+70:");
-
-                        if (x != -1) {
-                            int start = x + "QTY+70:".length();
-                            int end = txt1.indexOf(":", start);
-
-                            if (end != -1) {
-                                pce_doc_cumul = txt1.substring(start, end);
-                            } else {
-                                pce_doc_cumul = txt1.substring(start);
                             }
                         }
-                        String int_destination = null;
-                        int y = txt1.indexOf("LOC+159+");
-
-                        if (y != -1) {
-                            int start = y + "LOC+159+".length();
-                            int end = txt1.indexOf("'", start);
-
-                            if (end != -1) {
-                                int_destination = txt1.substring(start, end);
-                            } else {
-                                int_destination = txt1.substring(start);
-                            }
-                        }
-
-                        ArrayList<Map<String, String>> docNumbersList = new ArrayList<>();
-                        int b = txt1.indexOf("RFF+AAK");
-                        String doc_numbers = null;
-                        if (b != -1 && b >= 5) {
-                            doc_numbers = txt1.substring(b - 5);
-
-                        } else {
-                            System.out.println("'RFF+AAK' not found  ");
-                        }
-                        while ( doc_numbers!= null
-                                && doc_numbers.contains("RFF+AAK")) {
-                            int rffIndexx = doc_numbers.indexOf("RFF+AAK");
-                            int colonIndexx = doc_numbers.lastIndexOf(":", rffIndexx);
-
-                            String doc_number_pce = doc_numbers.substring(colonIndexx + 1, rffIndexx);
-                            doc_number_pce = doc_number_pce.replaceAll("[^\\d]", "");
-                            int colonIndex = doc_numbers.indexOf(':', 40);
-                            String doc_number_1 = doc_numbers.substring(0, colonIndex);
-                            int colonIndex1 = doc_number_1.indexOf(':', 2);
-                            int quoteIndex = doc_number_1.indexOf('\'', 8);
-                            String docNumber1Id = doc_number_1.substring(colonIndex1 + 1, quoteIndex);
-
-                            int startDate = doc_number_1.indexOf(docNumber1Id) + docNumber1Id.length() + 8;
-                            int endDate = startDate + 8;
-                            String docNumber1Date = doc_number_1.substring(startDate, endDate);
-                            doc_numbers = doc_numbers.substring(doc_number_1.length());
-
-                            int index = doc_numbers.indexOf("RFF+AAK");
-
-                            if (index >= 5) {
-                                doc_numbers = doc_numbers.substring(index - 5);
-                            }
-                            boolean containsAlpha = false;
-                            for (char c : docNumber1Id.toCharArray()) {
-                                if (Character.isAlphabetic(c)) {
-
-                                    containsAlpha = true;
-                                    break;
-                                }
-                            }
-                            if (containsAlpha) {
-
-                                Map<String, String> docData = new HashMap<>();
-                                docData.put("pce", doc_number_pce);
-                                docData.put("doc_id", docNumber1Id);
-                                docData.put("doc_date", docNumber1Date);
-                                docNumbersList.add(docData);
-                            }
-
-                        }
-
-                        ArrayList<Map<String, String>> firmList = new ArrayList<>();
-                        if (txt1.contains("SCC+1++F")) {
-
-                            if (txt1.contains("SCC+4++F")) {
-                                String firm1 = txt1.substring(txt1.indexOf("SCC+1++F"));
-
-                                while (firm1.contains("SCC+1++F")) {
-                                    int startIndex = firm1.indexOf("SCC+1++F");
-                                    int endIndex = firm1.indexOf("SCC+4++F") + 8;
-                                    String firm = firm1.substring(startIndex, endIndex);
-
-                                    firm1 = firm1.substring(firm.length());
-
-                                    int nextIndex = firm1.indexOf("SCC+1++F");
-                                    if (nextIndex != -1) {
-                                        firm1 = firm1.substring(nextIndex);
-                                    }
-
-                                    while (firm.contains(":")) {
-                                        int colonIndex = firm.indexOf(":");
-                                        String x1 = firm.substring(0, colonIndex + 1);
-                                        firm = firm.substring(x1.length());
-                                        colonIndex = firm.indexOf(":");
-                                        String pce = firm.substring(0, colonIndex + 1);
-                                        firm = firm.substring(pce.length());
-                                        pce = pce.replaceAll("[^0-9]", "");
-
-                                        int colonIndex2 = firm.indexOf(":");
-                                        String x3 = firm.substring(0, colonIndex2 + 1);
-                                        firm = firm.substring(x3.length());
-
-                                        colonIndex2 = firm.indexOf(":");
-                                        String datebefore = firm.substring(0, colonIndex2 + 1);
-                                        firm = firm.substring(datebefore.length());
-                                        datebefore = datebefore.replaceAll("[^0-9]", "");
-                                        int colonIndex3 = firm.indexOf(":");
-                                        String x4 = firm.substring(0, colonIndex3 + 1);
-                                        firm = firm.substring(x4.length());
-                                        colonIndex3 = firm.indexOf(":");
-                                        String dateafter = firm.substring(0, colonIndex3 + 1);
-                                        firm = firm.substring(dateafter.length());
-                                        dateafter = dateafter.replaceAll("[^0-9]", "");
-                                        if (!pce.equals("0")) {
-                                            Map<String, String> dataFirm = new HashMap<>();
-                                            dataFirm.put("pce", pce);
-                                            dataFirm.put("databefore", toDate(datebefore));
-                                            dataFirm.put("dateafter", toDate(dateafter));
-
-                                            firmList.add(dataFirm);
-                                        }
-
-                                    }
-                                }
-
-                            }
-
-                        }
-
-
-                        ArrayList<Map<String, String>> forecastList = new ArrayList<>();
-                        if (txt1.contains("SCC+4++F")) {
-                            String forecast1 = txt1.substring(txt1.indexOf("SCC+4++F") + 9);
-
-                            while (forecast1.contains("PAC++1")) {
-                                String forecast = forecast1.substring(0, forecast1.indexOf("PAC++1"));
-
-                                forecast1 = forecast1.substring(forecast.length());
-
-                                forecast1 = forecast1.substring(forecast1.indexOf("SCC+4++F") + 9);
-                                while (forecast.contains(":")) {
-                                    String x1 = forecast.substring(0, forecast.indexOf(":") + 1);
-                                    forecast = forecast.substring(x1.length());
-
-                                    String pce = forecast.substring(0, forecast.indexOf(":") + 1);
-                                    forecast = forecast.substring(pce.length());
-
-                                    pce = pce.replaceAll("[^0-9]", "");
-                                    String x3 = forecast.substring(0, forecast.indexOf(":") + 1);
-                                    forecast = forecast.substring(x3.length());
-
-                                    String datebefore = forecast.substring(0, forecast.indexOf(":") + 1);
-                                    forecast = forecast.substring(datebefore.length());
-
-                                    datebefore = datebefore.replaceAll("[^0-9]", "");
-
-                                    String x4 = forecast.substring(0, forecast.indexOf(":") + 1);
-                                    forecast = forecast.substring(x4.length());
-
-                                    String dateafter = forecast.substring(0, forecast.indexOf(":") + 1);
-                                    forecast = forecast.substring(dateafter.length());
-
-                                    dateafter = dateafter.replaceAll("[^0-9]", "");
-
-                                    if (!pce.equals("0")) {
-                                        Map<String, String> dataforecast = new HashMap<>();
-                                        dataforecast.put("pce", pce);
-                                        dataforecast.put("databefore", toDate(dateafter));
-                                        dataforecast.put("dateafter", toDate(datebefore));
-
-                                        forecastList.add(dataforecast);
-                                    }
-                                }
-
-                            }
-
-                        }
-
-                        String articleRef = txt1.substring(txt1.indexOf("RFF+AAN:") + 8, txt1.indexOf("'", txt1.indexOf("RFF+AAN:") + 8));
-
-                        String dateDocument = txt1.substring(txt1.indexOf(":", txt1.indexOf("BGM")) + 1, txt1.indexOf(":", txt1.indexOf(":", txt1.indexOf("BGM")) + 1));
-
+                        String dateDocument = txt.substring(txt.indexOf(":", txt.indexOf("BGM")) + 1, txt.indexOf(":", txt.indexOf(":", txt.indexOf("BGM")) + 1));
                         dateDocument = dateDocument.substring(0, 4) + "-" + dateDocument.substring(4, 6) + "-" + dateDocument.substring(6);
-
-                        List<Map<String, String>> firmListDistinct = remove_dup(firmList);
-                        List<Map<String, String>> forecastListDistinct = remove_dup(forecastList);
-
-                        firmListDistinct.sort(Comparator.comparing(item -> item.get("dateafter")));
-                        forecastListDistinct.sort(Comparator.comparing(item -> item.get("dateafter")));
-
-                        int buyerStartIndex = txt1.indexOf("NAD+BY+") + "NAD+BY+".length();
-                        int buyerEndIndex = txt1.indexOf(":", buyerStartIndex);
-                        String buyer = txt1.substring(buyerStartIndex, buyerEndIndex);
-                        int shiptoStartIndex = txt1.indexOf("NAD+CN+") + "NAD+CN+".length();
-
-                        int shiptoEndIndex = txt1.indexOf(":", shiptoStartIndex);
-
-                        String shipto = txt1.substring(shiptoStartIndex, shiptoEndIndex);
-                        Map<String, Object> l = new HashMap<>();
-                        l.put("art_ref", articleRef);
-                        l.put("date_doc", dateDocument);
-                        l.put("doc_id", document_id);
-                        l.put("article_description", article_description);
-                        l.put("loc_id", loc_id);
-                        l.put("doc_ref_num_order", document_reference_number_order);
-                        l.put("pce_doc_cumul", pce_doc_cumul);
-                        l.put("internal destination", int_destination);
-                        l.put("doc_numbers_list", docNumbersList);
-                        l.put("firmlist", firmListDistinct);
-                        l.put("forecastlist", forecastListDistinct);
-                        l.put("buyer", buyer);
-                        l.put("shipto", shipto);
-
-                        k.put((String) l.get("doc_id"), l);
-
-
-                    }
-
-                } else if ((txt.contains("UNOA:3+") ) ){
-                try {
-                    File filee = new File(di, filename);
-
-                    try (BufferedReader readerr = new BufferedReader(new InputStreamReader(new FileInputStream(filee), StandardCharsets.ISO_8859_1))) {
-                        StringBuilder contentt = new StringBuilder();
-                        String linee;
-
-                        while ((linee = readerr.readLine()) != null) {
-                            contentt.append(linee).append("\n");
-                        }
-
-                        String txtt = contentt.toString().trim();
-
-                        int startIndex = txtt.indexOf("UNOA:");
-
-                        startIndex = txtt.indexOf('+', startIndex + "UNOA:".length()) + 1;
-                        int endIndex = txtt.indexOf('+', startIndex);
-                        String sender_id = txtt.substring(startIndex, endIndex);
-                        int senderIndex = txtt.indexOf(sender_id);
-                        String receive_id = txtt.substring(senderIndex + sender_id.length() + 1,
-                                txtt.indexOf('+', senderIndex + sender_id.length() + 2));
-                        String ref_file = txtt.substring(txtt.indexOf('+', txtt.indexOf("UNZ") + "UNZ".length()) + 1,
-                                txtt.indexOf('\'', txtt.indexOf("UNZ") + 1));
-                        String id_file = txtt.substring(txtt.indexOf(':', txtt.indexOf("UNOA:") + "UNOA:".length()) + 1,
-                                txtt.indexOf('+', txtt.indexOf(':', txtt.indexOf("UNOA:") + "UNOA:".length()) + 1));
-
-                        k.put("rec_id", receive_id);
+                        int buyerStartIndex = txt.indexOf("NAD+BY+") + "NAD+BY+".length();
+                        int buyerEndIndex = txt.indexOf(":", buyerStartIndex);
+                        String buyer = txt.substring(buyerStartIndex, buyerEndIndex);
+                        int shiptoStartIndex = txt.indexOf("NAD+CN+") + "NAD+CN+".length();
+                        int shiptoEndIndex = txt.indexOf(":", shiptoStartIndex);
+                        String shipto = txt.substring(shiptoStartIndex, shiptoEndIndex);
+                        k.put("rec_id", receiver_id);
                         k.put("sen_id", sender_id);
                         k.put("ref_file", ref_file);
                         k.put("id_file", id_file);
 
-                        txtt = txtt.substring(txtt.indexOf("UNH+"));
-
-                        while (txtt.contains("UNH+")) {
-                            int startIdx = txtt.indexOf("UNH+");
-                            int endIdx = txtt.indexOf("UNT+") +4;
-                            String txt1 = txtt.substring(startIdx, endIdx);
-                            txtt = txtt.substring(txtt.indexOf("UNT+") + "UNT+".length());
-
-
-                            String document_id = txt1.substring(txt1.indexOf("LIN+1++") + 7, txt1.indexOf(":", txt1.indexOf("LIN+1++") + 7));
-                            String article_description = null;
-                            if (txt1.contains("IMD")) {
-                                article_description = txt1.substring(txt1.indexOf("IMD+++:::") + "IMD+++:::".length(), txt1.indexOf("'", txt1.indexOf("IMD+++:::")));
+                        txt = txt.substring(txt.indexOf("LIN+++"));
+                        while (txt.contains("LIN+++")) {
+                            txt = txt.substring(txt.indexOf("LIN+++"));
+                            int nextndex = txt.indexOf("LIN+++", "LIN+++".length());
+                            String txt1;
+                            if (nextndex != -1) {
+                                txt1 = txt.substring(0, nextndex);
+                                txt = txt.substring(nextndex);
+                            } else {
+                                txt1 = txt;
+                                txt = "";
                             }
+                            int documentIdStart = txt1.indexOf("LIN+++") + "LIN+++".length();
+                            int documentIdEnd = txt1.indexOf(":", documentIdStart);
+                            String document_id = txt1.substring(documentIdStart, documentIdEnd);
+                            String article_description = txt1.substring(txt1.indexOf("IMD+++:::") + "IMD+++:::".length(), txt1.indexOf("'", txt1.indexOf("IMD+++:::")));
                             String loc_id = txt1.substring(txt1.indexOf("LOC+11+") + "LOC+11+".length(), txt1.indexOf("'", txt1.indexOf("LOC+11+")));
                             String document_reference_number_order = txt1.substring(txt1.indexOf("RFF+ON:") + "RFF+ON:".length(), txt1.indexOf("'", txt1.indexOf("RFF+ON:")));
-                            String pce_doc_cumul = txt1.substring(txt1.indexOf("QTY+70:") + "QTY+70:".length(), txt1.indexOf(":", txt1.indexOf("QTY+70:") + "QTY+70:".length()));
+                            String pce_doc_cumul = null;
+                            int x = txt1.indexOf("QTY+70:");
+                            if (x != -1) {
+                                int start = x + "QTY+70:".length();
+                                int end = txt1.indexOf(":", start);
+                                if (end != -1) {
+                                    pce_doc_cumul = txt1.substring(start, end);
+                                } else {
+                                    pce_doc_cumul = txt1.substring(start);
+                                }
+                            }
                             String int_destination = null;
                             int y = txt1.indexOf("LOC+159+");
-
                             if (y != -1) {
                                 int start = y + "LOC+159+".length();
                                 int end = txt1.indexOf("'", start);
-
                                 if (end != -1) {
                                     int_destination = txt1.substring(start, end);
                                 } else {
@@ -726,64 +191,264 @@ public class FileConversionService {
                                 }
                             }
                             ArrayList<Map<String, String>> docNumbersList = new ArrayList<>();
-                            String docNumbers = txt1.substring(txt1.indexOf("RFF+AAU") - 13);
-                            String docNumberPce = docNumbers.substring(docNumbers.indexOf(":") + 1, docNumbers.indexOf(":PCE"));
-                            docNumberPce = docNumberPce.replaceAll("[^0-9]", "");
-                            String docNumber1 = docNumbers.substring(0, docNumbers.indexOf(":", 40));
-                            String docNumber1Id = docNumber1.substring(docNumber1.indexOf("RFF+AAU:") + "RFF+AAU".length() + 1,
-                                    docNumber1.indexOf("'", docNumber1.indexOf("RFF+AAU:")));
-                            String docNumber1Date = docNumber1.substring(docNumber1.indexOf(docNumber1Id) + docNumber1Id.length() + 9,
-                                    docNumber1.indexOf(docNumber1Id) + docNumber1Id.length() + 17);
-                            Map<String, String> docData = new HashMap<>();
-                            docData.put("pce", docNumberPce);
-                            docData.put("doc_id", docNumber1Id);
-                            docData.put("doc_date", docNumber1Date);
-                            docNumbersList.add(docData);
-
-
-                            String txt2 = txt1;
+                            int b = txt1.indexOf("RFF+AAK");
+                            String doc_numbers = null;
+                            if (b != -1 && b >= 5) {
+                                doc_numbers = txt1.substring(b - 5);
+                            } else {
+                                System.out.println("'RFF+AAK' not found");
+                            }
+                            while (doc_numbers != null && doc_numbers.contains("RFF+AAK")) {
+                                int rffIndexx = doc_numbers.indexOf("RFF+AAK");
+                                int colonIndexx = doc_numbers.lastIndexOf(":", rffIndexx);
+                                String doc_number_pce = doc_numbers.substring(colonIndexx + 1, rffIndexx);
+                                doc_number_pce = doc_number_pce.replaceAll("[^\\d]", "");
+                                int colonIndex = doc_numbers.indexOf(':', 40);
+                                String doc_number_1 = doc_numbers.substring(0, colonIndex);
+                                int colonIndex1 = doc_number_1.indexOf(':', 2);
+                                int quoteIndex = doc_number_1.indexOf('\'', 8);
+                                String docNumber1Id = doc_number_1.substring(colonIndex1 + 1, quoteIndex);
+                                int startDate = doc_number_1.indexOf(docNumber1Id) + docNumber1Id.length() + 8;
+                                int endDate = startDate + 8;
+                                String docNumber1Date = doc_number_1.substring(startDate, endDate);
+                                doc_numbers = doc_numbers.substring(doc_number_1.length());
+                                int index = doc_numbers.indexOf("RFF+AAK");
+                                if (index >= 5) {
+                                    doc_numbers = doc_numbers.substring(index - 5);
+                                }
+                                boolean containsAlpha = false;
+                                for (char c : docNumber1Id.toCharArray()) {
+                                    if (Character.isAlphabetic(c)) {
+                                        containsAlpha = true;
+                                        break;
+                                    }
+                                }
+                                if (containsAlpha) {
+                                    Map<String, String> docData = new HashMap<>();
+                                    docData.put("pce", doc_number_pce);
+                                    docData.put("doc_id", docNumber1Id);
+                                    docData.put("doc_date", docNumber1Date);
+                                    docNumbersList.add(docData);
+                                }
+                            }
                             ArrayList<Map<String, String>> firmList = new ArrayList<>();
                             if (txt1.contains("SCC+1++F")) {
-
                                 if (txt1.contains("SCC+4++F")) {
                                     String firm1 = txt1.substring(txt1.indexOf("SCC+1++F"));
-
                                     while (firm1.contains("SCC+1++F")) {
-                                        int starttIndex = firm1.indexOf("SCC+1++F");
-                                        int enddIndex = firm1.indexOf("SCC+4++F") + 8;
-                                        String firm = firm1.substring(starttIndex, enddIndex);
-
+                                        int startIndex = firm1.indexOf("SCC+1++F");
+                                        int endIndex = firm1.indexOf("SCC+4++F") + 8;
+                                        String firm = firm1.substring(startIndex, endIndex);
                                         firm1 = firm1.substring(firm.length());
-
                                         int nextIndex = firm1.indexOf("SCC+1++F");
                                         if (nextIndex != -1) {
                                             firm1 = firm1.substring(nextIndex);
                                         }
-
                                         while (firm.contains(":")) {
                                             int colonIndex = firm.indexOf(":");
                                             String x1 = firm.substring(0, colonIndex + 1);
-
                                             firm = firm.substring(x1.length());
-
-
                                             colonIndex = firm.indexOf(":");
                                             String pce = firm.substring(0, colonIndex + 1);
-
                                             firm = firm.substring(pce.length());
-
                                             pce = pce.replaceAll("[^0-9]", "");
-
                                             int colonIndex2 = firm.indexOf(":");
                                             String x3 = firm.substring(0, colonIndex2 + 1);
-
                                             firm = firm.substring(x3.length());
+                                            colonIndex2 = firm.indexOf(":");
+                                            String dateafter = firm.substring(0, colonIndex2 + 1);
+                                            firm = firm.substring(dateafter.length());
+                                            dateafter = dateafter.replaceAll("[^0-9]", "");
+                                            int colonIndex3 = firm.indexOf(":");
+                                            String x4 = firm.substring(0, colonIndex3 + 1);
+                                            firm = firm.substring(x4.length());
+                                            colonIndex3 = firm.indexOf(":");
+                                            String datebefore = firm.substring(0, colonIndex3 + 1);
+                                            firm = firm.substring(datebefore.length());
+                                            datebefore = datebefore.replaceAll("[^0-9]", "");
+                                            if (!pce.equals("0")) {
+                                                Map<String, String> dataFirm = new HashMap<>();
+                                                dataFirm.put("pce", pce);
+                                                dataFirm.put("databefore", toDate(datebefore));
+                                                dataFirm.put("dateafter", toDate(dateafter));
+                                                firmList.add(dataFirm);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            ArrayList<Map<String, String>> forecastList = new ArrayList<>();
+                            if (txt1.contains("SCC+4++F")) {
+                                String forecast = txt1.substring(txt1.indexOf("SCC+4++F") + 9);
+                                forecast = forecast.trim();
+                                while (forecast.contains(":")) {
+                                    String x1 = forecast.substring(0, forecast.indexOf(":") + 1);
+                                    forecast = forecast.substring(x1.length());
+                                    String pce = forecast.substring(0, forecast.indexOf(":") + 1);
+                                    forecast = forecast.substring(pce.length());
+                                    pce = pce.replaceAll("[^0-9]", "");
+                                    String x3 = forecast.substring(0, forecast.indexOf(":") + 1);
+                                    forecast = forecast.substring(x3.length());
+                                    String datebefore = forecast.substring(0, forecast.indexOf(":") + 1);
+                                    forecast = forecast.substring(datebefore.length());
+                                    datebefore = datebefore.replaceAll("[^0-9]", "");
+                                    String x4 = forecast.substring(0, forecast.indexOf(":") + 1);
+                                    forecast = forecast.substring(x4.length());
+                                    String dateafter = forecast.substring(0, forecast.indexOf(":") + 1);
+                                    forecast = forecast.substring(dateafter.length());
+                                    dateafter = dateafter.replaceAll("[^0-9]", "");
+                                    if (!pce.equals("0")) {
+                                        Map<String, String> dataforecast = new HashMap<>();
+                                        dataforecast.put("pce", pce);
+                                        dataforecast.put("databefore", toDate(dateafter));
+                                        dataforecast.put("dateafter", toDate(datebefore));
+                                        forecastList.add(dataforecast);
+                                    }
+                                }
+                            }
+                            String articleRef = txt1.substring(txt1.indexOf("RFF+AAN:") + 8, txt1.indexOf("'", txt1.indexOf("RFF+AAN:") + 8));
+                            List<Map<String, String>> firmListDistinct = remove_dup(firmList);
+                            List<Map<String, String>> forecastListDistinct = remove_dup(forecastList);
+                            firmListDistinct.sort(Comparator.comparing(item -> item.get("dateafter")));
+                            forecastListDistinct.sort(Comparator.comparing(item -> item.get("dateafter")));
+                            Map<String, Object> l = new HashMap<>();
+                            l.put("art_ref", articleRef);
+                            l.put("date_doc", dateDocument);
+                            l.put("doc_id", document_id);
+                            l.put("article_description", article_description);
+                            l.put("loc_id", loc_id);
+                            l.put("doc_ref_num_order", document_reference_number_order);
+                            l.put("pce_doc_cumul", pce_doc_cumul);
+                            l.put("internal destination", int_destination);
+                            l.put("doc_numbers_list", docNumbersList);
+                            l.put("firmlist", firmListDistinct);
+                            l.put("forecastlist", forecastListDistinct);
+                            l.put("buyer", buyer);
+                            l.put("shipto", shipto);
+                            k.put((String) l.get("doc_id"), l);
+                        }
+                    } else {
+                        String sender_id = txt.substring(txt.indexOf("UNOA:1+") + "UNOA:1+".length(),
+                                txt.indexOf("+", txt.indexOf("UNOA:1+") + "UNOA:1+".length()));
+                        String receiver_id = txt.substring(txt.indexOf(sender_id) + sender_id.length() + 1,
+                                txt.indexOf("+", txt.indexOf(sender_id) + sender_id.length() + 1));
+                        String ref_file = txt.substring(txt.indexOf("UNZ+") + "UNZ+".length(),
+                                txt.indexOf("'", txt.indexOf("UNZ+") + "UNZ+".length()));
+                        String id_file = txt.substring(txt.indexOf(":", txt.indexOf("UNOA:1+") + "UNOA:1+".length()) + 1,
+                                txt.indexOf("+", txt.indexOf(":", txt.indexOf("UNOA:1+") + "UNOA:1+".length())));
+                        k.put("rec_id", receiver_id);
+                        k.put("sen_id", sender_id);
+                        k.put("ref_file", ref_file);
+                        k.put("id_file", id_file);
 
+                        txt = txt.substring(txt.indexOf("UNH+"));
+                        while (txt.contains("UNH+")) {
+                            int startIdx = txt.indexOf("UNH+");
+                            int endIdx = txt.indexOf("UNT+", startIdx) + 4;
+                            String txt1 = txt.substring(startIdx, endIdx);
+                            txt = txt.substring(endIdx);
+                            String document_id = null;
+                            if (txt1.contains("LIN+++")) {
+                                int documentIdStart = txt1.indexOf("LIN+++") + "LIN+++".length();
+                                int documentIdEnd = txt1.indexOf(":", documentIdStart);
+                                document_id = txt1.substring(documentIdStart, documentIdEnd);
+                            }
+                            String article_description = null;
+                            if (txt1.contains("IMD")) {
+                                article_description = txt1.substring(txt1.indexOf("IMD+++:::") + "IMD+++:::".length(), txt1.indexOf("'", txt1.indexOf("IMD+++:::")));
+                            }
+                            String loc_id = txt1.substring(txt1.indexOf("LOC+11+") + "LOC+11+".length(), txt1.indexOf("'", txt1.indexOf("LOC+11+")));
+                            String document_reference_number_order = txt1.substring(txt1.indexOf("RFF+ON:") + "RFF+ON:".length(), txt1.indexOf("'", txt1.indexOf("RFF+ON:")));
+                            String pce_doc_cumul = null;
+                            int x = txt1.indexOf("QTY+70:");
+                            if (x != -1) {
+                                int start = x + "QTY+70:".length();
+                                int end = txt1.indexOf(":", start);
+                                if (end != -1) {
+                                    pce_doc_cumul = txt1.substring(start, end);
+                                } else {
+                                    pce_doc_cumul = txt1.substring(start);
+                                }
+                            }
+                            String int_destination = null;
+                            int y = txt1.indexOf("LOC+159+");
+                            if (y != -1) {
+                                int start = y + "LOC+159+".length();
+                                int end = txt1.indexOf("'", start);
+                                if (end != -1) {
+                                    int_destination = txt1.substring(start, end);
+                                } else {
+                                    int_destination = txt1.substring(start);
+                                }
+                            }
+                            ArrayList<Map<String, String>> docNumbersList = new ArrayList<>();
+                            int b = txt1.indexOf("RFF+AAK");
+                            String doc_numbers = null;
+                            if (b != -1 && b >= 5) {
+                                doc_numbers = txt1.substring(b - 5);
+                            } else {
+                                System.out.println("'RFF+AAK' not found");
+                            }
+                            while (doc_numbers != null && doc_numbers.contains("RFF+AAK")) {
+                                int rffIndexx = doc_numbers.indexOf("RFF+AAK");
+                                int colonIndexx = doc_numbers.lastIndexOf(":", rffIndexx);
+                                String doc_number_pce = doc_numbers.substring(colonIndexx + 1, rffIndexx);
+                                doc_number_pce = doc_number_pce.replaceAll("[^\\d]", "");
+                                int colonIndex = doc_numbers.indexOf(':', 40);
+                                String doc_number_1 = doc_numbers.substring(0, colonIndex);
+                                int colonIndex1 = doc_number_1.indexOf(':', 2);
+                                int quoteIndex = doc_number_1.indexOf('\'', 8);
+                                String docNumber1Id = doc_number_1.substring(colonIndex1 + 1, quoteIndex);
+                                int startDate = doc_number_1.indexOf(docNumber1Id) + docNumber1Id.length() + 8;
+                                int endDate = startDate + 8;
+                                String docNumber1Date = doc_number_1.substring(startDate, endDate);
+                                doc_numbers = doc_numbers.substring(doc_number_1.length());
+                                int index = doc_numbers.indexOf("RFF+AAK");
+                                if (index >= 5) {
+                                    doc_numbers = doc_numbers.substring(index - 5);
+                                }
+                                boolean containsAlpha = false;
+                                for (char c : docNumber1Id.toCharArray()) {
+                                    if (Character.isAlphabetic(c)) {
+                                        containsAlpha = true;
+                                        break;
+                                    }
+                                }
+                                if (containsAlpha) {
+                                    Map<String, String> docData = new HashMap<>();
+                                    docData.put("pce", doc_number_pce);
+                                    docData.put("doc_id", docNumber1Id);
+                                    docData.put("doc_date", docNumber1Date);
+                                    docNumbersList.add(docData);
+                                }
+                            }
+                            ArrayList<Map<String, String>> firmList = new ArrayList<>();
+                            if (txt1.contains("SCC+1++F")) {
+                                if (txt1.contains("SCC+4++F")) {
+                                    String firm1 = txt1.substring(txt1.indexOf("SCC+1++F"));
+                                    while (firm1.contains("SCC+1++F")) {
+                                        int startIndex = firm1.indexOf("SCC+1++F");
+                                        int endIndex = firm1.indexOf("SCC+4++F") + 8;
+                                        String firm = firm1.substring(startIndex, endIndex);
+                                        firm1 = firm1.substring(firm.length());
+                                        int nextIndex = firm1.indexOf("SCC+1++F");
+                                        if (nextIndex != -1) {
+                                            firm1 = firm1.substring(nextIndex);
+                                        }
+                                        while (firm.contains(":")) {
+                                            int colonIndex = firm.indexOf(":");
+                                            String x1 = firm.substring(0, colonIndex + 1);
+                                            firm = firm.substring(x1.length());
+                                            colonIndex = firm.indexOf(":");
+                                            String pce = firm.substring(0, colonIndex + 1);
+                                            firm = firm.substring(pce.length());
+                                            pce = pce.replaceAll("[^0-9]", "");
+                                            int colonIndex2 = firm.indexOf(":");
+                                            String x3 = firm.substring(0, colonIndex2 + 1);
+                                            firm = firm.substring(x3.length());
                                             colonIndex2 = firm.indexOf(":");
                                             String datebefore = firm.substring(0, colonIndex2 + 1);
-
                                             firm = firm.substring(datebefore.length());
-
                                             datebefore = datebefore.replaceAll("[^0-9]", "");
                                             int colonIndex3 = firm.indexOf(":");
                                             String x4 = firm.substring(0, colonIndex3 + 1);
@@ -797,75 +462,52 @@ public class FileConversionService {
                                                 dataFirm.put("pce", pce);
                                                 dataFirm.put("databefore", toDate(datebefore));
                                                 dataFirm.put("dateafter", toDate(dateafter));
-
                                                 firmList.add(dataFirm);
                                             }
-
                                         }
                                     }
-
                                 }
-
                             }
-                            else {
-                                System.out.println("there is no firm list.");
-                            }
-
-                            txt2 =txt1;
                             ArrayList<Map<String, String>> forecastList = new ArrayList<>();
-                            String forecast1 = txt1.substring(txt1.indexOf("SCC+9")+9);
-                            while (forecast1.contains("SCC+2")) {
-                                String forecast = forecast1.substring(0, forecast1.indexOf("SCC+2"));
-
-                                forecast1 = forecast1.substring(forecast.length());
-
-                                forecast1 = forecast1.substring(forecast1.indexOf("SCC+9") + 9);
-                                while (forecast.contains(":")) {
-                                    String x1 = forecast.substring(0, forecast.indexOf(":") + 1);
-                                    forecast = forecast.substring(x1.length());
-
-                                    String pce = forecast.substring(0, forecast.indexOf(":") + 1);
-                                    forecast = forecast.substring(pce.length());
-
-                                    pce = pce.replaceAll("[^0-9]", "");
-
-                                    String x3 = forecast.substring(0, forecast.indexOf(":") + 1);
-                                    forecast = forecast.substring(x3.length());
-
-                                    String datebefore = forecast.substring(0, forecast.indexOf(":") + 1);
-                                    forecast = forecast.substring(datebefore.length());
-
-                                    datebefore = datebefore.replaceAll("[^0-9]", "");
-
-                                    String dateafter = datebefore;
-
-                                    if (!pce.equals("0")) {
-                                        Map<String, String> dataforecast = new HashMap<>();
-                                        dataforecast.put("pce", pce);
-                                        dataforecast.put("databefore", toDate(dateafter));
-                                        dataforecast.put("dateafter", toDate(datebefore));
-
-                                        forecastList.add(dataforecast);
+                            if (txt1.contains("SCC+4++F")) {
+                                String forecast1 = txt1.substring(txt1.indexOf("SCC+4++F") + 9);
+                                while (forecast1.contains("PAC++1")) {
+                                    String forecast = forecast1.substring(0, forecast1.indexOf("PAC++1"));
+                                    forecast1 = forecast1.substring(forecast.length());
+                                    forecast1 = forecast1.substring(forecast1.indexOf("SCC+4++F") + 9);
+                                    while (forecast.contains(":")) {
+                                        String x1 = forecast.substring(0, forecast.indexOf(":") + 1);
+                                        forecast = forecast.substring(x1.length());
+                                        String pce = forecast.substring(0, forecast.indexOf(":") + 1);
+                                        forecast = forecast.substring(pce.length());
+                                        pce = pce.replaceAll("[^0-9]", "");
+                                        String x3 = forecast.substring(0, forecast.indexOf(":") + 1);
+                                        forecast = forecast.substring(x3.length());
+                                        String datebefore = forecast.substring(0, forecast.indexOf(":") + 1);
+                                        forecast = forecast.substring(datebefore.length());
+                                        datebefore = datebefore.replaceAll("[^0-9]", "");
+                                        String x4 = forecast.substring(0, forecast.indexOf(":") + 1);
+                                        forecast = forecast.substring(x4.length());
+                                        String dateafter = forecast.substring(0, forecast.indexOf(":") + 1);
+                                        forecast = forecast.substring(dateafter.length());
+                                        dateafter = dateafter.replaceAll("[^0-9]", "");
+                                        if (!pce.equals("0")) {
+                                            Map<String, String> dataforecast = new HashMap<>();
+                                            dataforecast.put("pce", pce);
+                                            dataforecast.put("databefore", toDate(dateafter));
+                                            dataforecast.put("dateafter", toDate(datebefore));
+                                            forecastList.add(dataforecast);
+                                        }
                                     }
                                 }
-
                             }
-
-                            String articleRef = txt1.substring(txt1.indexOf("RFF+AAN:") + 8, txt1.indexOf("'", txt1.indexOf("RFF+AAN:") + 8));
-
-                            String dateDocument = txt2.substring(txt1.indexOf(":", txt1.indexOf("BGM")) + 1, txt1.indexOf(":", txt1.indexOf(":", txt1.indexOf("BGM")) + 1));
-
-                            dateDocument = dateDocument.substring(0, 4) + "-" + dateDocument.substring(4, 6) + "-" + dateDocument.substring(6);
-
-
                             List<Map<String, String>> firmListDistinct = remove_dup(firmList);
                             List<Map<String, String>> forecastListDistinct = remove_dup(forecastList);
-
-
                             firmListDistinct.sort(Comparator.comparing(item -> item.get("dateafter")));
                             forecastListDistinct.sort(Comparator.comparing(item -> item.get("dateafter")));
-
-
+                            String articleRef = txt1.substring(txt1.indexOf("RFF+AAN:") + 8, txt1.indexOf("'", txt1.indexOf("RFF+AAN:") + 8));
+                            String dateDocument = txt1.substring(txt1.indexOf(":", txt1.indexOf("BGM")) + 1, txt1.indexOf(":", txt1.indexOf(":", txt1.indexOf("BGM")) + 1));
+                            dateDocument = dateDocument.substring(0, 4) + "-" + dateDocument.substring(4, 6) + "-" + dateDocument.substring(6);
                             int buyerStartIndex = txt1.indexOf("NAD+BY+") + "NAD+BY+".length();
                             int buyerEndIndex = txt1.indexOf(":", buyerStartIndex);
                             String buyer = txt1.substring(buyerStartIndex, buyerEndIndex);
@@ -889,17 +531,190 @@ public class FileConversionService {
                             k.put((String) l.get("doc_id"), l);
                         }
                     }
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
+                } else if (txt.contains("UNOA:3+")) {
+                    try {
+                        File filee = new File(di, filename);
+                        try (BufferedReader readerr = new BufferedReader(new InputStreamReader(new FileInputStream(filee), StandardCharsets.ISO_8859_1))) {
+                            StringBuilder contentt = new StringBuilder();
+                            String linee;
+                            while ((linee = readerr.readLine()) != null) {
+                                contentt.append(linee).append("\n");
+                            }
+                            String txtt = contentt.toString().trim();
+                            int startIndex = txtt.indexOf("UNOA:");
+                            startIndex = txtt.indexOf('+', startIndex + "UNOA:".length()) + 1;
+                            int endIndex = txtt.indexOf('+', startIndex);
+                            String sender_id = txtt.substring(startIndex, endIndex);
+                            int senderIndex = txtt.indexOf(sender_id);
+                            String receive_id = txtt.substring(senderIndex + sender_id.length() + 1,
+                                    txtt.indexOf('+', senderIndex + sender_id.length() + 2));
+                            String ref_file = txtt.substring(txtt.indexOf('+', txtt.indexOf("UNZ") + "UNZ".length()) + 1,
+                                    txtt.indexOf('\'', txtt.indexOf("UNZ") + 1));
+                            String id_file = txtt.substring(txtt.indexOf(':', txtt.indexOf("UNOA:") + "UNOA:".length()) + 1,
+                                    txtt.indexOf('+', txtt.indexOf(':', txtt.indexOf("UNOA:") + "UNOA:".length()) + 1));
+                            k.put("rec_id", receive_id);
+                            k.put("sen_id", sender_id);
+                            k.put("ref_file", ref_file);
+                            k.put("id_file", id_file);
 
+                            txtt = txtt.substring(txtt.indexOf("UNH+"));
+                            while (txtt.contains("UNH+")) {
+                                int startIdx = txtt.indexOf("UNH+");
+                                int endIdx = txtt.indexOf("UNT+", startIdx) + 4;
+                                String txt1 = txtt.substring(startIdx, endIdx);
+                                txtt = txtt.substring(endIdx);
+                                String document_id = txt1.substring(txt1.indexOf("LIN+1++") + 7, txt1.indexOf(":", txt1.indexOf("LIN+1++") + 7));
+                                String article_description = null;
+                                if (txt1.contains("IMD")) {
+                                    article_description = txt1.substring(txt1.indexOf("IMD+++:::") + "IMD+++:::".length(), txt1.indexOf("'", txt1.indexOf("IMD+++:::")));
+                                }
+                                String loc_id = txt1.substring(txt1.indexOf("LOC+11+") + "LOC+11+".length(), txt1.indexOf("'", txt1.indexOf("LOC+11+")));
+                                String document_reference_number_order = txt1.substring(txt1.indexOf("RFF+ON:") + "RFF+ON:".length(), txt1.indexOf("'", txt1.indexOf("RFF+ON:")));
+                                String pce_doc_cumul = txt1.substring(txt1.indexOf("QTY+70:") + "QTY+70:".length(), txt1.indexOf(":", txt1.indexOf("QTY+70:") + "QTY+70:".length()));
+                                String int_destination = null;
+                                int y = txt1.indexOf("LOC+159+");
+                                if (y != -1) {
+                                    int start = y + "LOC+159+".length();
+                                    int end = txt1.indexOf("'", start);
+                                    if (end != -1) {
+                                        int_destination = txt1.substring(start, end);
+                                    } else {
+                                        int_destination = txt1.substring(start);
+                                    }
+                                }
+                                ArrayList<Map<String, String>> docNumbersList = new ArrayList<>();
+                                String docNumbers = txt1.substring(txt1.indexOf("RFF+AAU") - 13);
+                                String docNumberPce = docNumbers.substring(docNumbers.indexOf(":") + 1, docNumbers.indexOf(":PCE"));
+                                docNumberPce = docNumberPce.replaceAll("[^0-9]", "");
+                                String docNumber1 = docNumbers.substring(0, docNumbers.indexOf(":", 40));
+                                String docNumber1Id = docNumber1.substring(docNumber1.indexOf("RFF+AAU:") + "RFF+AAU".length() + 1,
+                                        docNumber1.indexOf("'", docNumber1.indexOf("RFF+AAU:")));
+                                String docNumber1Date = docNumber1.substring(docNumber1.indexOf(docNumber1Id) + docNumber1Id.length() + 9,
+                                        docNumber1.indexOf(docNumber1Id) + docNumber1Id.length() + 17);
+                                Map<String, String> docData = new HashMap<>();
+                                docData.put("pce", docNumberPce);
+                                docData.put("doc_id", docNumber1Id);
+                                docData.put("doc_date", docNumber1Date);
+                                docNumbersList.add(docData);
+                                String txt2 = txt1;
+                                ArrayList<Map<String, String>> firmList = new ArrayList<>();
+                                if (txt1.contains("SCC+1++F")) {
+                                    if (txt1.contains("SCC+4++F")) {
+                                        String firm1 = txt1.substring(txt1.indexOf("SCC+1++F"));
+                                        while (firm1.contains("SCC+1++F")) {
+                                            int starttIndex = firm1.indexOf("SCC+1++F");
+                                            int enddIndex = firm1.indexOf("SCC+4++F") + 8;
+                                            String firm = firm1.substring(starttIndex, enddIndex);
+                                            firm1 = firm1.substring(firm.length());
+                                            int nextIndex = firm1.indexOf("SCC+1++F");
+                                            if (nextIndex != -1) {
+                                                firm1 = firm1.substring(nextIndex);
+                                            }
+                                            while (firm.contains(":")) {
+                                                int colonIndex = firm.indexOf(":");
+                                                String x1 = firm.substring(0, colonIndex + 1);
+                                                firm = firm.substring(x1.length());
+                                                colonIndex = firm.indexOf(":");
+                                                String pce = firm.substring(0, colonIndex + 1);
+                                                firm = firm.substring(pce.length());
+                                                pce = pce.replaceAll("[^0-9]", "");
+                                                int colonIndex2 = firm.indexOf(":");
+                                                String x3 = firm.substring(0, colonIndex2 + 1);
+                                                firm = firm.substring(x3.length());
+                                                colonIndex2 = firm.indexOf(":");
+                                                String datebefore = firm.substring(0, colonIndex2 + 1);
+                                                firm = firm.substring(datebefore.length());
+                                                datebefore = datebefore.replaceAll("[^0-9]", "");
+                                                int colonIndex3 = firm.indexOf(":");
+                                                String x4 = firm.substring(0, colonIndex3 + 1);
+                                                firm = firm.substring(x4.length());
+                                                colonIndex3 = firm.indexOf(":");
+                                                String dateafter = firm.substring(0, colonIndex3 + 1);
+                                                firm = firm.substring(dateafter.length());
+                                                dateafter = dateafter.replaceAll("[^0-9]", "");
+                                                if (!pce.equals("0")) {
+                                                    Map<String, String> dataFirm = new HashMap<>();
+                                                    dataFirm.put("pce", pce);
+                                                    dataFirm.put("databefore", toDate(datebefore));
+                                                    dataFirm.put("dateafter", toDate(dateafter));
+                                                    firmList.add(dataFirm);
+                                                }
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    System.out.println("there is no firm list.");
+                                }
+                                txt2 = txt1;
+                                ArrayList<Map<String, String>> forecastList = new ArrayList<>();
+                                String forecast1 = txt1.substring(txt1.indexOf("SCC+9") + 9);
+                                while (forecast1.contains("SCC+2")) {
+                                    String forecast = forecast1.substring(0, forecast1.indexOf("SCC+2"));
+                                    forecast1 = forecast1.substring(forecast.length());
+                                    forecast1 = forecast1.substring(forecast1.indexOf("SCC+9") + 9);
+                                    while (forecast.contains(":")) {
+                                        String x1 = forecast.substring(0, forecast.indexOf(":") + 1);
+                                        forecast = forecast.substring(x1.length());
+                                        String pce = forecast.substring(0, forecast.indexOf(":") + 1);
+                                        forecast = forecast.substring(pce.length());
+                                        pce = pce.replaceAll("[^0-9]", "");
+                                        String x3 = forecast.substring(0, forecast.indexOf(":") + 1);
+                                        forecast = forecast.substring(x3.length());
+                                        String datebefore = forecast.substring(0, forecast.indexOf(":") + 1);
+                                        forecast = forecast.substring(datebefore.length());
+                                        datebefore = datebefore.replaceAll("[^0-9]", "");
+                                        String dateafter = datebefore;
+                                        if (!pce.equals("0")) {
+                                            Map<String, String> dataforecast = new HashMap<>();
+                                            dataforecast.put("pce", pce);
+                                            dataforecast.put("databefore", toDate(dateafter));
+                                            dataforecast.put("dateafter", toDate(datebefore));
+                                            forecastList.add(dataforecast);
+                                        }
+                                    }
+                                }
+                                String articleRef = txt1.substring(txt1.indexOf("RFF+AAN:") + 8, txt1.indexOf("'", txt1.indexOf("RFF+AAN:") + 8));
+                                String dateDocument = txt2.substring(txt1.indexOf(":", txt1.indexOf("BGM")) + 1, txt1.indexOf(":", txt1.indexOf(":", txt1.indexOf("BGM")) + 1));
+                                dateDocument = dateDocument.substring(0, 4) + "-" + dateDocument.substring(4, 6) + "-" + dateDocument.substring(6);
+                                List<Map<String, String>> firmListDistinct = remove_dup(firmList);
+                                List<Map<String, String>> forecastListDistinct = remove_dup(forecastList);
+                                firmListDistinct.sort(Comparator.comparing(item -> item.get("dateafter")));
+                                forecastListDistinct.sort(Comparator.comparing(item -> item.get("dateafter")));
+                                int buyerStartIndex = txt1.indexOf("NAD+BY+") + "NAD+BY+".length();
+                                int buyerEndIndex = txt1.indexOf(":", buyerStartIndex);
+                                String buyer = txt1.substring(buyerStartIndex, buyerEndIndex);
+                                int shiptoStartIndex = txt1.indexOf("NAD+CN+") + "NAD+CN+".length();
+                                int shiptoEndIndex = txt1.indexOf(":", shiptoStartIndex);
+                                String shipto = txt1.substring(shiptoStartIndex, shiptoEndIndex);
+                                Map<String, Object> l = new HashMap<>();
+                                l.put("art_ref", articleRef);
+                                l.put("date_doc", dateDocument);
+                                l.put("doc_id", document_id);
+                                l.put("article_description", article_description);
+                                l.put("loc_id", loc_id);
+                                l.put("doc_ref_num_order", document_reference_number_order);
+                                l.put("pce_doc_cumul", pce_doc_cumul);
+                                l.put("internal destination", int_destination);
+                                l.put("doc_numbers_list", docNumbersList);
+                                l.put("firmlist", firmListDistinct);
+                                l.put("forecastlist", forecastListDistinct);
+                                l.put("buyer", buyer);
+                                l.put("shipto", shipto);
+                                k.put((String) l.get("doc_id"), l);
+                            }
+                        }
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            } else {
+                System.out.println("Not a DELFOR file.");
+            }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
         System.out.println(k);
-
-        return (k);
+        return k;
     }
         public static List<File> convertFileToXML(Map<String, Object> data) {
             List<String> keys = new ArrayList<>(data.keySet());
@@ -1170,7 +985,7 @@ public class FileConversionService {
 
 // Sanitize the sender ID
                     String sanitizedSenId = sanitizeFileName(data.get("sen_id").toString());
-                    String dirName = FileConversionService.staticOutputPath+ "/" + sanitizedSenId + "/";
+                    String dirName = EdiconvertorConfig.getOutputPath() + "/" + sanitizedSenId + "/";
                     new File(dirName).mkdirs();
 
 // Build the file name safely
@@ -1382,7 +1197,7 @@ public class FileConversionService {
         }
 
         String sanitizedSenId = sanitizeFileName(senId.toString());
-        String dirName = FileConversionService.staticOutputPath+ "/" + sanitizedSenId + "/";
+        String dirName = EdiconvertorConfig.getOutputPath()+ "/" + sanitizedSenId + "/";
         new File(dirName).mkdirs();
 
         File xlsxFile = new File(dirName + idFile + "_" + refFile + ".xlsx");

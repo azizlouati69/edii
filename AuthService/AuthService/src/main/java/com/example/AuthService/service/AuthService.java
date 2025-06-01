@@ -1,12 +1,20 @@
 package com.example.AuthService.service;
 
 import com.example.AuthService.DTO.*;
-import com.example.AuthService.entity.user;
+import com.example.AuthService.entity.User;
+import com.example.AuthService.entity.VerificationToken;
 import com.example.AuthService.repository.userrepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import com.example.AuthService.repository.VerificationTokenRepository;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -16,7 +24,12 @@ public class AuthService {
     @Qualifier("securityPasswordEncoder")
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final JavaMailSender mailSender;
+
     private final TokenStore refreshTokenStore;
+    private final  VerificationTokenRepository verificationTokenRepository;
+
+    @Transactional
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new IllegalArgumentException("Nom d'utilisateur déjà pris.");
@@ -30,7 +43,7 @@ public class AuthService {
         }
 
 
-        user newUser = user.builder()
+        User newUser = User.builder()
                 .username(request.getUsername())
                 .email(request.getEmail())
                 .phone(request.getPhone())
@@ -38,32 +51,49 @@ public class AuthService {
                 .firstname(request.getFirstname())
                 .lastname(request.getLastname())
                 .role("ROLE_USER")
-                .enabled(true)
+                .enabled(false)
                 .build();
 
         userRepository.save(newUser);
+        String token = UUID.randomUUID().toString();
+        VerificationToken verificationToken = new VerificationToken(
+                token,
+                newUser,
+                LocalDateTime.now().plusHours(24)
+        );
+        verificationTokenRepository.save(verificationToken);
 
-        // Generate both tokens
-        String accessToken = jwtService.generateAccessToken(newUser);
-        String refreshToken = jwtService.generateRefreshToken(newUser);
-        refreshTokenStore.put(newUser.getUsername(), refreshToken); // ✅ Store it
+        // ✅ Send verification email
+        sendVerificationEmail(newUser.getEmail(), token);
 
-        // Return both in AuthResponse
-        return new AuthResponse(accessToken, refreshToken);
+        // ⛔ Don't generate tokens yet, wait for verification
+        return new AuthResponse("Veuillez vérifier votre email pour activer votre compte.", null);
     }
+    public void sendVerificationEmail(String recipientEmail, String token) {
+        String verificationUrl = "http://localhost:4200//verify-account?token=" + token;
 
-    public user loadUserByUsername(String username) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(recipientEmail);
+        message.setSubject("Vérification de votre adresse e-mail");
+        message.setText("Bonjour,\n\nMerci de vous être inscrit. Veuillez cliquer sur le lien suivant pour activer votre compte :\n"
+                + verificationUrl + "\n\nCe lien expirera dans 24 heures.");
+
+        mailSender.send(message);
+    }
+    public User loadUserByUsername(String username) {
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
     }
     public AuthResponse authenticate(AuthRequest request) {
-        user user = userRepository.findByEmail(request.getEmail())
+        User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("Compte inexistant"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new RuntimeException("Mot de passe incorrect");
         }
-
+        if (!user.isEnabled()) {
+            throw new RuntimeException("Veuillez d'abord vérifier votre adresse email.");
+        }
         // Generate both tokens
         String accessToken = jwtService.generateAccessToken(user);
         String refreshToken = jwtService.generateRefreshToken(user);

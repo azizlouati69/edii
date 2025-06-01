@@ -8,7 +8,8 @@ import com.example.Edi_dash.sevice.sellerservice;
  import org.springframework.http.ResponseEntity;
  import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+ import java.util.Collections;
+ import java.util.List;
 import java.util.Optional;
 @CrossOrigin(origins = "http://localhost:4200")
 
@@ -32,8 +33,13 @@ public class sellercontroller {
         return sellerservice.getSellerByReceiverId(ReceiverId);
     }
 
-    @GetMapping("/search/senderId")
+    @GetMapping("/search/receiverId")
     public List<seller> searchByReceiverId(@RequestParam String receiverId) {
+        if (receiverId == null || receiverId.trim().isEmpty()) {
+            System.out.println("Invalid receiverId: [" + receiverId + "]");
+            return Collections.emptyList();
+        }
+        System.out.println("Searching for receiverId: [" + receiverId + "]");
         return sellerservice.searchSellerByReceiverId(receiverId);
     }
     @DeleteMapping("/{id}")

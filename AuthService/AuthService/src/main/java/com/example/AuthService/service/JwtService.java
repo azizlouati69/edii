@@ -1,6 +1,6 @@
 package com.example.AuthService.service;
 
-import com.example.AuthService.entity.user;
+import com.example.AuthService.entity.User;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -25,19 +25,20 @@ public class JwtService {
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
-    public String generateAccessToken(user user) {
-        long accessTokenExpiration = 60 * 60 * 1000; // 30 minutes
-        return generateToken(user.getUsername(), accessTokenExpiration, "access");
+    public String generateAccessToken(User user) {
+        long accessTokenExpiration = 60 * 60 * 1000; // 60 minutes
+        return generateToken(user.getUsername(), user.getId(), accessTokenExpiration, "access");
     }
 
-    public String generateRefreshToken(user user) {
+    public String generateRefreshToken(User user) {
         long refreshTokenExpiration = 7 * 24 * 60 * 60 * 1000; // 7 days
-        return generateToken(user.getUsername(), refreshTokenExpiration, "refresh");
+        return generateToken(user.getUsername(), user.getId(), refreshTokenExpiration, "refresh");
     }
 
-    private String generateToken(String username, long expirationMillis, String type) {
+    private String generateToken(String username, Long userId, long expirationMillis, String type) {
         return Jwts.builder()
                 .setSubject(username)
+                .claim("userId", userId)
                 .claim("type", type)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expirationMillis))
@@ -58,39 +59,38 @@ public class JwtService {
     }
 
     public String extractUsername(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(getSignInKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody()
-                .getSubject();
+        return extractAllClaims(token).getSubject();
     }
+
+    public Long extractUserId(String token) {
+        return extractAllClaims(token).get("userId", Long.class);
+    }
+
     public String extractType(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(getSignInKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody()
-                .get("type", String.class);
+        return extractAllClaims(token).get("type", String.class);
     }
+
     public boolean isTokenExpired(String token) {
         return extractExpiration(token).before(new Date());
     }
 
     public Date extractExpiration(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(getSignInKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody()
-                .getExpiration();
+        return extractAllClaims(token).getExpiration();
     }
 
     public UserDetails loadUserFromToken(String token) {
         return new org.springframework.security.core.userdetails.User(
                 extractUsername(token),
-                "", // password (not used here)
-                Collections.emptyList() // <- never null!
+                "",
+                Collections.emptyList()
         );
+    }
+
+    private Claims extractAllClaims(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(getSignInKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
     }
 }

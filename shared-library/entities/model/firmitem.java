@@ -1,14 +1,12 @@
-package  entities.model;
+package entities.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
-import jakarta.persistence.*;
-
-import java.util.ArrayList;
-import java.util.List;
-
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 public class firmitem {
@@ -17,13 +15,12 @@ public class firmitem {
     private Long id;
 
     private String deliveryQuantity;
-    private String deliveryDateAfter;
-    private String deliveryDateBefore;
+    private LocalDate deliveryDateAfter;
+    private LocalDate deliveryDateBefore;
 
     @ManyToOne
     @JoinColumn(name = "order_id")
     @JsonBackReference
-
     private order order;
 
     // Getters and Setters
@@ -43,19 +40,19 @@ public class firmitem {
         this.deliveryQuantity = deliveryQuantity;
     }
 
-    public String getDeliveryDateAfter() {
+    public LocalDate getDeliveryDateAfter() {
         return deliveryDateAfter;
     }
 
-    public void setDeliveryDateAfter(String deliveryDateAfter) {
+    public void setDeliveryDateAfter(LocalDate deliveryDateAfter) {
         this.deliveryDateAfter = deliveryDateAfter;
     }
 
-    public String getDeliveryDateBefore() {
+    public LocalDate getDeliveryDateBefore() {
         return deliveryDateBefore;
     }
 
-    public void setDeliveryDateBefore(String deliveryDateBefore) {
+    public void setDeliveryDateBefore(LocalDate deliveryDateBefore) {
         this.deliveryDateBefore = deliveryDateBefore;
     }
 

@@ -36,9 +36,9 @@ public class sellerservice {
         return sellerRepository.findAll();
     }
 
-    public List<seller> searchSellerByReceiverId(String ReceiverId) {
-        return   sellerRepository.findByReceiverIdContainingIgnoreCase(ReceiverId);
-
+    public List<seller> searchSellerByReceiverId(String receiverId) {
+        System.out.println("Repository call with receiverId: [" + receiverId + "]");
+        return sellerRepository.findByReceiverIdContainingIgnoreCase(receiverId);
     }
     public Optional<seller> getSellerById(Long  Id) {
         return sellerRepository.findById(Id);

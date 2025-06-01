@@ -1,11 +1,12 @@
-package  entities.model;
+package entities.model;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
-
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+
 @Entity
 public class quantity {
     @Id
@@ -13,7 +14,7 @@ public class quantity {
     private Long id;
 
     private String latestReceivedQuantity;
-    private String receivingDate;
+    private LocalDate receivingDate;
     private String deliveryNoteDocNumber;
     private String cumulativeReceivedQuantity;
     @OneToOne(mappedBy = "quantity"   )
@@ -43,11 +44,11 @@ public class quantity {
         this.cumulativeReceivedQuantity = cumulativeReceivedQuantity;
     }
 
-    public String getReceivingDate() {
+    public LocalDate getReceivingDate() {
         return receivingDate;
     }
 
-    public void setReceivingDate(String receivingDate) {
+    public void setReceivingDate(LocalDate receivingDate) {
         this.receivingDate = receivingDate;
     }
 

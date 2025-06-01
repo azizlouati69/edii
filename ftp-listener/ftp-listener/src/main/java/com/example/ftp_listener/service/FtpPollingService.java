@@ -1,6 +1,7 @@
 package com.example.ftp_listener.service;
 
 
+import com.example.ftp_listener.config.FtpConfig;
 import com.jcraft.jsch.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,18 +21,22 @@ public class FtpPollingService {
     private final String pass = "M24TDB08";
     private final String remoteDir = "/ANO22766";
     // Use forward slashes for SFTP paths
-    @Value("${path}")
-    private   String localDir   ;
+    private final FtpConfig ftpConfig;
+
+    @Autowired
+    public FtpPollingService(FtpConfig ftpConfig) {
+        this.ftpConfig = ftpConfig;
+    }
 
 
 
     private String extractSenderName(String fileName) {
         try {
-            int startIndex = fileName.indexOf("done%%");
+            int startIndex = fileName.indexOf("%");
             if (startIndex == -1) return null;
 
             // Start after "done%%"
-            int senderStart = startIndex + "done%%".length();
+            int senderStart = startIndex + "%".length();
             int senderEnd = fileName.indexOf("%", senderStart);
 
             if (senderEnd == -1) return null;
@@ -50,7 +55,8 @@ public class FtpPollingService {
         JSch jsch = new JSch();
         Session session = null;
         ChannelSftp channelSftp = null;
-
+        String localDir = ftpConfig.getDirectoryPath();
+        System.out.println("Local directory path is: " + localDir);
         try {
             session = jsch.getSession(user, server, port);
             session.setPassword(pass);
@@ -135,9 +141,8 @@ public class FtpPollingService {
             }
         }
     }
-
- /*
-public void putFileToServer(String fileName, ChannelSftp channelSftp) {
+/*
+ public void putFileToServer(String fileName, ChannelSftp channelSftp) {
         File fileToUpload = new File(localDir, fileName);
 
         // Check if the file exists locally

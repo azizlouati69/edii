@@ -1,4 +1,4 @@
-package  repository;
+package repository;
 
 import entities.model.client;
 import entities.model.order;
@@ -8,82 +8,101 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface orderrepository extends JpaRepository<order, Long> {
-    List<order> findByDocumentId(String documentId);  // This returns a list of clients
-    Optional<order> findById(Long  Id);
+    @Query(value = "SELECT o FROM order o WHERE CAST(FUNCTION('DATE_FORMAT', o.issueDate, '%Y-%m-%d') AS string) LIKE %:dateString%")
+    List<order> findByIssueDateContainingStringMySQL(@Param("dateString") String dateString);
+
+    List<order> findByDocumentId(String documentId);
+    Optional<order> findById(Long id);
     List<order> findByDocumentIdContainingIgnoreCase(String documentId);
     List<order> findByDescriptionContainingIgnoreCase(String description);
     List<order> findByBuyerArticleNumberContainingIgnoreCase(String buyerArticleNumber);
     List<order> findByDocumentNumberContainingIgnoreCase(String documentNumber);
-    List<order> findByIssueDateContainingIgnoreCase(String issueDate);
-    List<order> findByCalculationDateContainingIgnoreCase(String calculationDate);
     List<order> findByShiptoContainingIgnoreCase(String shipto);
     List<order> findByInternaldestinationContainingIgnoreCase(String internaldestination);
     List<order> findByPlaceofdischargeContainingIgnoreCase(String placeofdischarge);
     List<order> findByClient(client client);
 
+    // Use this instead of issueDate as String
+    List<order> findByIssueDate(LocalDate issueDate);
+    List<order> findByCalculationDate(LocalDate calculationDate);
+
     @Query("SELECT COUNT(o) FROM order o")
     Long getTotalOrders();
+
     @Query("""
-    SELECT o.id      ,\s
-           o.documentId ,\s
-           o.description ,\s
-           o.buyerArticleNumber,\s
-           o.documentNumber ,\s
-           MAX(o.issueDate)\s
-    FROM order o
-    GROUP BY o.id, o.documentId, o.description, o.buyerArticleNumber, o.documentNumber
-    ORDER BY MAX(o.issueDate) DESC
-""")
+        SELECT o.id, o.documentId, o.description, o.buyerArticleNumber, o.documentNumber, MAX(o.issueDate)
+        FROM order o
+        GROUP BY o.id, o.documentId, o.description, o.buyerArticleNumber, o.documentNumber
+        ORDER BY MAX(o.issueDate) DESC
+    """)
     List<Object[]> findTop3Orders(Pageable pageable);
-    @Query("SELECT COUNT(o) FROM order o WHERE SUBSTRING(o.issueDate, 1, 4) = :year")
-    Long getTotalOrdersThisYear(@Param("year") String year);
-    @Query("SELECT o.buyerArticleNumber, COUNT(o.buyerArticleNumber) " +
-            "FROM order o GROUP BY o.buyerArticleNumber " +
-            "ORDER BY COUNT(o.buyerArticleNumber) DESC")
+
+    @Query("SELECT COUNT(o) FROM order o WHERE YEAR(o.issueDate) = :year")
+    Long getTotalOrdersThisYear(@Param("year") int year);
+
+    @Query("""
+        SELECT o.buyerArticleNumber, COUNT(o.buyerArticleNumber)
+        FROM order o
+        GROUP BY o.buyerArticleNumber
+        ORDER BY COUNT(o.buyerArticleNumber) DESC
+    """)
     List<Object[]> findTop3MostFrequentBuyerArticles(Pageable pageable);
-    @Query("SELECT o FROM order o WHERE o.issueDate >= :startDate AND o.issueDate < :endDate")
-    List<order> findOrdersBetween(@Param("startDate") String startDate, @Param("endDate") String endDate);
-    @Query("SELECT SUBSTRING(o.issueDate, 1, 7) AS month, COUNT(o) AS total " +
-            "FROM order o " +
-            "GROUP BY SUBSTRING(o.issueDate, 1, 7) " +
-            "ORDER BY month ASC")
+
+    @Query("""
+        SELECT o FROM order o
+        WHERE o.issueDate >= :startDate AND o.issueDate <= :endDate
+    """)
+    List<order> findOrdersBetween(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+
+    @Query("""
+        SELECT FUNCTION('DATE_FORMAT', o.issueDate, '%Y-%m') AS month, COUNT(o) AS total
+        FROM order o
+        GROUP BY FUNCTION('DATE_FORMAT', o.issueDate, '%Y-%m')
+        ORDER BY month ASC
+    """)
     List<Object[]> getMonthlyOrderCounts();
-    @Query("SELECT o.buyerArticleNumber, COUNT(o.buyerArticleNumber) " +
-            "FROM order o " +
-            "WHERE SUBSTRING(o.issueDate, 1, 7) = :monthYear " + // Filter orders for the current month
-            "GROUP BY o.buyerArticleNumber " +
-            "ORDER BY COUNT(o.buyerArticleNumber) DESC")
-    List<Object[]> findTop3MostFrequentBuyerArticles(@Param("monthYear") String monthYear, Pageable pageable);
-    @Query("SELECT o.buyerArticleNumber, COUNT(o.buyerArticleNumber) " +
-            "FROM order o " +
-            "WHERE SUBSTRING(o.issueDate, 1, 4) = :year " +
-            "GROUP BY o.buyerArticleNumber " +
-            "ORDER BY COUNT(o.buyerArticleNumber) DESC")
-    List<Object[]> findTop3MostFrequentBuyerArticlesThisYear(@Param("year") String year, Pageable pageable);
-    @Query("SELECT o.buyerArticleNumber, COUNT(o.buyerArticleNumber) " +
-            "FROM order o " +
-            "WHERE SUBSTRING(o.issueDate, 1, 10) = :today " +
-            "GROUP BY o.buyerArticleNumber " +
-            "ORDER BY COUNT(o.buyerArticleNumber) DESC")
-    List<Object[]> findTop3MostFrequentBuyerArticlesToday(@Param("today") String today, Pageable pageable);
-    @Query("SELECT o.buyerArticleNumber, COUNT(o.buyerArticleNumber) " +
-            "FROM order o " +
-            "WHERE SUBSTRING(o.issueDate, 1, 10) IN :weekDates " +
-            "GROUP BY o.buyerArticleNumber " +
-            "ORDER BY COUNT(o.buyerArticleNumber) DESC")
-    List<Object[]> findTop3MostFrequentBuyerArticlesThisWeek(@Param("weekDates") List<String> weekDates, Pageable pageable);
 
+    @Query("""
+        SELECT o.buyerArticleNumber, COUNT(o.buyerArticleNumber)
+        FROM order o
+        WHERE o.issueDate BETWEEN :startDate AND :endDate
+        GROUP BY o.buyerArticleNumber
+        ORDER BY COUNT(o.buyerArticleNumber) DESC
+    """)
+    List<Object[]> findTop3MostFrequentBuyerArticlesThisMonth(@Param("startDate") LocalDate startDate,
+                                                              @Param("endDate") LocalDate endDate,
+                                                              Pageable pageable);
 
+    @Query("""
+        SELECT o.buyerArticleNumber, COUNT(o.buyerArticleNumber)
+        FROM order o
+        WHERE YEAR(o.issueDate) = :year
+        GROUP BY o.buyerArticleNumber
+        ORDER BY COUNT(o.buyerArticleNumber) DESC
+    """)
+    List<Object[]> findTop3MostFrequentBuyerArticlesThisYear(@Param("year") int year, Pageable pageable);
+
+    @Query("""
+        SELECT o.buyerArticleNumber, COUNT(o.buyerArticleNumber)
+        FROM order o
+        WHERE o.issueDate = :today
+        GROUP BY o.buyerArticleNumber
+        ORDER BY COUNT(o.buyerArticleNumber) DESC
+    """)
+    List<Object[]> findTop3MostFrequentBuyerArticlesToday(@Param("today") LocalDate today, Pageable pageable);
+
+    @Query("""
+        SELECT o.buyerArticleNumber, COUNT(o.buyerArticleNumber)
+        FROM order o
+        WHERE o.issueDate IN :weekDates
+        GROUP BY o.buyerArticleNumber
+        ORDER BY COUNT(o.buyerArticleNumber) DESC
+    """)
+    List<Object[]> findTop3MostFrequentBuyerArticlesThisWeek(@Param("weekDates") List<LocalDate> weekDates, Pageable pageable);
 }
-
-
-
-
-
-

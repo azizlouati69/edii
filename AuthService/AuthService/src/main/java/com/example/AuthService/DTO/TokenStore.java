@@ -1,7 +1,6 @@
 package com.example.AuthService.DTO;
 
-import com.example.AuthService.DTO.RefreshToken;
-import com.example.AuthService.DTO.RefreshTokenRepository;
+import com.example.AuthService.repository.RefreshTokenRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 

@@ -1,20 +1,30 @@
 package com.example.AuthService.controller;
 import com.example.AuthService.DTO.*;
-import com.example.AuthService.entity.user;
+import com.example.AuthService.entity.PasswordResetToken;
+import com.example.AuthService.entity.User;
+import com.example.AuthService.entity.VerificationToken;
+import com.example.AuthService.repository.PasswordResetTokenRepository;
+import com.example.AuthService.repository.RefreshTokenRepository;
+import com.example.AuthService.repository.VerificationTokenRepository;
 import com.example.AuthService.service.AuthService;
+import com.example.AuthService.service.EmailService;
 import com.example.AuthService.service.JwtService;
-
+import com.example.AuthService.repository.userrepository;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.transaction.Transactional;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Optional;
+import java.util.UUID;
 
 @CrossOrigin(origins = "http://localhost:4200")
 @RestController
@@ -22,19 +32,67 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class AuthController {
     private final JwtService jwtService;
+    private final userrepository userRepository;
+    private final  PasswordResetTokenRepository PasswordResetTokenRepository;
     private final TokenStore refreshTokenStore;
     private final AuthService authService;
-    private final RefreshTokenRepository RefreshTokenRepository;
-    public AuthController(AuthService authService, JwtService jwtservice, RefreshTokenRepository RefreshTokenRepository,TokenStore refreshTokenStore) {
+    private final com.example.AuthService.repository.RefreshTokenRepository RefreshTokenRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
+    private final VerificationTokenRepository VerificationTokenRepository;
+
+
+    public AuthController(AuthService authService,VerificationTokenRepository VerificationTokenRepository  ,JwtService jwtservice, userrepository userRepository, com.example.AuthService.repository.PasswordResetTokenRepository passwordResetTokenRepository, RefreshTokenRepository RefreshTokenRepository, TokenStore refreshTokenStore, PasswordEncoder passwordEncoder, EmailService emailService) {
         this.authService = authService;
         this.jwtService= jwtservice;
+        this.userRepository = userRepository;
+        PasswordResetTokenRepository = passwordResetTokenRepository;
         this.refreshTokenStore = refreshTokenStore;
         this.RefreshTokenRepository= RefreshTokenRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.emailService = emailService;
+        this.VerificationTokenRepository= VerificationTokenRepository;
     }
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@RequestBody RegisterRequest request) {
         return ResponseEntity.ok(authService.register(request));
+    }
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request) {
+        Logger logger = LoggerFactory.getLogger(AuthController.class);
+        String token = request.getToken();
+
+        logger.info("Password reset attempt received at {} with token: {}", LocalDateTime.now(), token.substring(0, Math.min(8, token.length())) + "...");
+
+        Optional<PasswordResetToken> tokenOptional = PasswordResetTokenRepository.findByToken(token);
+
+        if (tokenOptional.isEmpty()) {
+            logger.warn("Password reset failed - token not found: {}", token);
+            return ResponseEntity.badRequest().body(Map.of("message", "Le lien de réinitialisation est invalide ou a expiré."));
+        }
+
+        PasswordResetToken resetToken = tokenOptional.get();
+
+        if (resetToken.getExpiryDate().isBefore(LocalDateTime.now())) {
+            logger.warn("Password reset failed - token expired for user: {}", resetToken.getUser().getEmail());
+            return ResponseEntity.badRequest().body(Map.of("message", "Le lien de réinitialisation a expiré."));
+        }
+
+        try {
+            User user = resetToken.getUser();
+            user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+            userRepository.save(user);
+
+            PasswordResetTokenRepository.delete(resetToken); // Delete token after use
+            logger.info("Password successfully reset for user: {}", user.getEmail());
+
+            return ResponseEntity.ok(Map.of("message", "Mot de passe réinitialisé avec succès."));
+
+        } catch (Exception e) {
+            logger.error("Erreur lors de la réinitialisation du mot de passe: {}", e.getMessage(), e);
+            return ResponseEntity.status(500).body(Map.of("message", "Une erreur interne est survenue lors de la réinitialisation du mot de passe."));
+        }
     }
 
     @PostMapping("/login")
@@ -79,7 +137,7 @@ public class AuthController {
                 throw new RuntimeException("Invalid refresh token");
             }
 
-            user userDetails = authService.loadUserByUsername(username);
+            User userDetails = authService.loadUserByUsername(username);
 
             // Generate new tokens
             String newAccessToken = jwtService.generateAccessToken(userDetails);
@@ -104,6 +162,79 @@ refreshTokenStore.put(username, newRefreshToken);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or expired refresh token");
         }
+    }
+    @GetMapping("/verify")
+    public ResponseEntity<Map<String, String>> verifyAccount(@RequestParam("token") String token) {
+        Map<String, String> response = new HashMap<>();
+
+        VerificationToken verificationToken = VerificationTokenRepository.findByToken(token);
+        if (verificationToken == null) {
+            response.put("message", "Token invalide.");
+            response.put("status", "error");
+            return ResponseEntity.badRequest().body(response);
+        }
+
+        if (verificationToken.getExpiryDate().isBefore(LocalDateTime.now())) {
+            response.put("message", "Le token a expiré.");
+            response.put("status", "error");
+            return ResponseEntity.badRequest().body(response);
+        }
+
+        User user = verificationToken.getUser();
+        user.setEnabled(true);
+        userRepository.save(user);
+        VerificationTokenRepository.delete(verificationToken);
+
+        response.put("message", "Compte activé avec succès. Vous pouvez maintenant vous connecter.");
+        response.put("status", "success");
+        return ResponseEntity.ok(response);
+    }
+
+
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
+        Optional<User> userOptional = userRepository.findByEmail(email);
+        if (userOptional.isEmpty()) {
+            return ResponseEntity.badRequest().body("Email not found");
+        }
+
+        User managedUser = userRepository.findById(userOptional.get().getId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        String token = UUID.randomUUID().toString();
+
+        // Find existing token for user
+        Optional<PasswordResetToken> existingTokenOpt = PasswordResetTokenRepository.findByUser(managedUser);
+
+        PasswordResetToken resetToken;
+        if (existingTokenOpt.isPresent()) {
+            // Update existing token
+            resetToken = existingTokenOpt.get();
+            resetToken.setToken(token);
+            resetToken.setExpiryDate(LocalDateTime.now().plusMinutes(30));
+        } else {
+            // Create new token entity
+            resetToken = new PasswordResetToken();
+            resetToken.setUser(managedUser);
+            resetToken.setToken(token);
+            resetToken.setExpiryDate(LocalDateTime.now().plusMinutes(30));
+        }
+
+        PasswordResetTokenRepository.save(resetToken);
+
+        String resetLink = "http://localhost:4200//reset-password?token=" + token;
+        String subject = "Réinitialisation du mot de passe";
+        String text = "Bonjour,\n\nCliquez sur le lien suivant pour réinitialiser votre mot de passe :\n" + resetLink + "\n\nCe lien expirera dans 30 minutes.";
+
+        try {
+            emailService.sendSimpleMessage(email, subject, text);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Erreur lors de l'envoi de l'email");
+        }
+
+        return ResponseEntity.ok("Lien de réinitialisation envoyé par email.");
     }
 
 

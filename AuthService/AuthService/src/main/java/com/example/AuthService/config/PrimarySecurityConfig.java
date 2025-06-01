@@ -50,8 +50,12 @@ public class PrimarySecurityConfig {
                         .requestMatchers(
                                 new AntPathRequestMatcher("/auth/register"),
                                 new AntPathRequestMatcher("/auth/login"),
+                                new AntPathRequestMatcher("/auth/forgot-password"),
                                 new AntPathRequestMatcher("/auth/refresh"),
-                                new AntPathRequestMatcher("/error")
+                                new AntPathRequestMatcher("/error"),
+                                new AntPathRequestMatcher("/auth/reset-password"),
+                                new AntPathRequestMatcher("/auth/verify")
+
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

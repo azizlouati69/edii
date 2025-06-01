@@ -10,31 +10,10 @@ logging:
     com.netflix.discovery: DEBUG
     org.springframework.cloud: DEBUG
 
-eureka:
-  instance:
-    hostname: localhost   # Hostname for the instance
-    prefer-ip-address: true  # Use IP address instead of hostname for the instance
-  client:
-    register-with-eureka: true
-    fetch-registry: true
-    service-url:
-      default-zone: http://localhost:8761/eureka/  # URL of the Eureka server to register with
 
 
-  mail:
-    host: smtp.gmail.com
-    port: 587
-    username: azizlouati987@gmail.com
-    password: xzto yjno djys ivij
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
-paths:
-  input: C:/txt
-  output: C:/test
+
+
 management:
   endpoints:
     web:

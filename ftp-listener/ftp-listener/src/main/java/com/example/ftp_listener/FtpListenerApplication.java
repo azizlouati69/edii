@@ -13,9 +13,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
-@SpringBootApplication
-@EnableDiscoveryClient
+ @SpringBootApplication
+
 @EnableScheduling  // This enables scheduling in Spring Boot
 public class FtpListenerApplication {
 
@@ -23,4 +22,3 @@ public class FtpListenerApplication {
 		SpringApplication.run(FtpListenerApplication.class, args);
 	}
 }
-

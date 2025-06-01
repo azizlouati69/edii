@@ -1,5 +1,6 @@
 package com.edi.ediconvertor.service;
 
+import com.edi.ediconvertor.config.EdiconvertorConfig;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,18 +17,15 @@ import java.util.Objects;
 
 @Service
 public class FileWatcherService {
-    @Value("${paths.input}")
-    private String inputPath;
-    private static String staticInputPath;
 
-    public static String getInputPath() {
-        return staticInputPath;
-    }
-    @PostConstruct
-    public void init() {
-        staticInputPath = inputPath;
 
+    private final EdiconvertorConfig ediconvertorConfig;
+
+    @Autowired
+    public FileWatcherService(EdiconvertorConfig ediconvertorConfig) {
+        this.ediconvertorConfig = ediconvertorConfig;
     }
+
     @Autowired
     private emailservice emailService;
     @Autowired
@@ -43,7 +41,7 @@ public class FileWatcherService {
 
     public void watchDirectory() {
 
-        Path rootPath = Paths.get(FileWatcherService.staticInputPath);
+        Path rootPath = Paths.get(ediconvertorConfig.getInputPath());
 
         try (WatchService watchService = FileSystems.getDefault().newWatchService()) {
             Map<WatchKey, Path> keyDirMap = new HashMap<>();
@@ -62,7 +60,7 @@ public class FileWatcherService {
                         }
                     });
 
-            System.out.println("Watching directory (and subdirectories): " + FileWatcherService.staticInputPath);
+            System.out.println("Watching directory (and subdirectories): " + ediconvertorConfig.getInputPath());
 
             Map<String, Long> fileTimestamps = new HashMap<>();
 
@@ -125,7 +123,10 @@ public class FileWatcherService {
 
         // Decrypt the file and retrieve data
         Map<String, Object> data = FileConversionService.decryptFile(newFile.getParent().toString(), fileName);
-
+        if (data.isEmpty()) {
+            System.out.println("Skipping processing for empty or  non-DELFOR file: " + fileName);
+            return;
+        }
         // Generate the HTML table
         String htmlTable = generateHtmlTable(data, fileName);
 
@@ -140,8 +141,8 @@ public class FileWatcherService {
         }
 
         // Send the email with the generated table and XML files as attachments
-        emailService.sendEmailWithTableAndAttachments(mailSender,
-                "azizlouati69@gmail.com",
+        emailService.sendEmailWithTableAndAttachments(
+                ediconvertorConfig.getMailreceiver(),
                 "New EDI file received ",
                 htmlTable,
                 Files);

@@ -14,6 +14,7 @@ import javax.xml.parsers.*;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.*;
+import java.time.LocalDate;
 import java.util.*;
 
 @Service
@@ -30,6 +31,7 @@ public class XMLParserService {
         this.orderrepository = orderrepository;
         this.quantityrepository = quantityrepository;
     }
+
     @Transactional
     public void parseAndSaveXML(String folderPath) {
         try {
@@ -40,6 +42,7 @@ public class XMLParserService {
             e.printStackTrace();
         }
     }
+
     @Transactional(propagation = Propagation.REQUIRED)
     private void processXMLFile(Path filePath) {
         try {
@@ -123,29 +126,32 @@ public class XMLParserService {
             System.out.println("PlaceOfDischarge: " + placeOfDischarge);
             System.out.println("InternalDestination: " + internalDestination);
 
+            // Handle Client: Create or Update
             client client;
-            if (isSenderIDUnique(senderID)) {
+            List<client> existingClients = clientrepository.findBySenderId(senderID);
+            if (existingClients.isEmpty()) {
                 client = new client();
                 client.setSenderId(senderID);
-                client.setBuyerIdentifier(buyerIdentifier);
-                client = clientrepository.save(client); // Save new client
             } else {
-                client = clientrepository.findBySenderId(senderID).get(0);
+                client = existingClients.get(0); // Get existing client
             }
+            client.setBuyerIdentifier(buyerIdentifier); // Update or set buyerIdentifier
+            client = clientrepository.save(client); // Save (create or update)
 
-            // Ensure Seller (Receiver) Exists
+            // Handle Seller: Create or Update
             seller seller;
-            if (isReceiverIDUnique(receiverID)) {
+            List<seller> existingSellers = sellerrepository.findByReceiverId(receiverID);
+            if (existingSellers.isEmpty()) {
                 seller = new seller();
                 seller.setReceiverId(receiverID);
-                seller = sellerrepository.save(seller); // Save new seller
             } else {
-                seller = sellerrepository.findByReceiverId(receiverID).get(0);
+                seller = existingSellers.get(0); // Get existing seller
             }
+            seller = sellerrepository.save(seller); // Save (create or update)
 
             // Initialize Lazy-Loaded Collections
-            seller.getClients().size();  // Ensures seller's clients are initialized within the transaction
-            client.getSellers().size();  // Ensures client's sellers are initialized within the transaction
+            seller.getClients().size(); // Ensures seller's clients are initialized within the transaction
+            client.getSellers().size(); // Ensures client's sellers are initialized within the transaction
 
             // Ensure bidirectional association is correct
             if (!client.getSellers().contains(seller)) {
@@ -157,7 +163,6 @@ public class XMLParserService {
 
             // Save only the owning side (Seller)
             sellerrepository.save(seller); // The client will be saved as part of the seller's association
-
 
             // Extract Order Information from ItemLine
             NodeList itemLines = doc.getElementsByTagName("ItemLine");
@@ -187,20 +192,24 @@ public class XMLParserService {
                     }
 
                     // Extract Issue Date
-                    String issueDate = doc.getElementsByTagName("IssueDate").item(0).getTextContent();
-
-                    // Extract Calculation Date
-                    String calculationDate = null;  // Default to null if not found
-                    NodeList calculationDateNodes = itemElement.getElementsByTagName("CalculationDate");
-                    if (calculationDateNodes.getLength() > 0) {
-                        calculationDate = calculationDateNodes.item(0).getTextContent();
+                    LocalDate issueDate = null;
+                    Node issueDateNode = doc.getElementsByTagName("IssueDate").item(0);
+                    if (issueDateNode != null) {
+                        issueDate = LocalDate.parse(issueDateNode.getTextContent().substring(0, 10));
                     }
 
-// Extract Quantity Data
-                    String latestReceivedQuantity = null;  // Default to null if not found
-                    String receivingDate = null;  // Default to null if not found
-                    String deliveryNoteDocNumber = null;  // Default to null if not found
-                    String cumulativeReceivedQuantity = null;  // Default to null if not found
+                    // Extract Calculation Date
+                    LocalDate calculationDate = null;
+                    NodeList calculationDateNodes = itemElement.getElementsByTagName("CalculationDate");
+                    if (calculationDateNodes.getLength() > 0) {
+                        calculationDate = LocalDate.parse(calculationDateNodes.item(0).getTextContent());
+                    }
+
+                    // Extract Quantity Data
+                    String latestReceivedQuantity = null;
+                    LocalDate receivingDate = null;
+                    String deliveryNoteDocNumber = null;
+                    String cumulativeReceivedQuantity = null;
 
                     NodeList receivedQuantityNodes = itemElement.getElementsByTagName("ReceivedQuantity");
                     if (receivedQuantityNodes.getLength() > 0) {
@@ -213,7 +222,7 @@ public class XMLParserService {
 
                         NodeList receivingDateNodes = receivedQuantityElement.getElementsByTagName("ReceivingDate");
                         if (receivingDateNodes.getLength() > 0) {
-                            receivingDate = receivingDateNodes.item(0).getTextContent();
+                            receivingDate = LocalDate.parse(receivingDateNodes.item(0).getTextContent());
                         }
 
                         NodeList docRefsQuantity = receivedQuantityElement.getElementsByTagName("DocumentReference");
@@ -234,182 +243,165 @@ public class XMLParserService {
                         }
                     }
 
-// Log Order details
+                    // Log Order details
                     System.out.println("BuyerArticleNumber: " + buyerArticleNumber);
                     System.out.println("Description: " + description);
                     System.out.println("DocumentID: " + documentID);
                     System.out.println("DocumentNumber: " + documentNumber);
                     System.out.println("IssueDate: " + issueDate);
-                    System.out.println("CalculationDate: " + calculationDate);  // May be null
-                    System.out.println("LatestReceivedQuantity: " + latestReceivedQuantity);  // May be null
-                    System.out.println("ReceivingDate: " + receivingDate);  // May be null
-                    System.out.println("DeliveryNoteDocNumber: " + deliveryNoteDocNumber);  // May be null
-                    System.out.println("CumulativeReceivedQuantity: " + cumulativeReceivedQuantity);  // May be null
+                    System.out.println("CalculationDate: " + calculationDate);
+                    System.out.println("LatestReceivedQuantity: " + latestReceivedQuantity);
+                    System.out.println("ReceivingDate: " + receivingDate);
+                    System.out.println("DeliveryNoteDocNumber: " + deliveryNoteDocNumber);
+                    System.out.println("CumulativeReceivedQuantity: " + cumulativeReceivedQuantity);
 
-// Create and save the Order if DocumentID is unique
-                    if (isDocumentIDUnique(documentID)) {
-                        order ord = new order();
-                        ord.setBuyerArticleNumber(buyerArticleNumber);
-                        ord.setDescription(description);
+                    // Handle Order: Create or Update
+                    order ord;
+                    List<order> existingOrders = orderrepository.findByDocumentId(documentID);
+                    if (existingOrders.isEmpty()) {
+                        ord = new order();
                         ord.setDocumentId(documentID);
-                        ord.setDocumentNumber(documentNumber);
-                        ord.setIssueDate(issueDate);
-                        ord.setCalculationDate(calculationDate);  // May be null
-                        ord.setShipto(shipToIdentifier);
-                        ord.setInternaldestination(internalDestination);
-                        ord.setPlaceofdischarge(placeOfDischarge);
-                        quantity q = new quantity();
-
-                        boolean hasQuantityData = false;
-
-                        if (cumulativeReceivedQuantity != null) {
-                            q.setCumulativeReceivedQuantity(cumulativeReceivedQuantity);
-                            hasQuantityData = true;
-                        }
-                        if (latestReceivedQuantity != null) {
-                            q.setLatestReceivedQuantity(latestReceivedQuantity);
-                            hasQuantityData = true;
-                        }
-                        if (receivingDate != null) {
-                            q.setReceivingDate(receivingDate);
-                            hasQuantityData = true;
-                        }
-                        if (deliveryNoteDocNumber != null) {
-                            q.setDeliveryNoteDocNumber(deliveryNoteDocNumber);
-                            hasQuantityData = true;
-                        }
-
-                        if (hasQuantityData) {
-                            q.setOrder(ord);
-                            ord.setQuantity(q);}
-                        // Proceed with setting the Order only if qty exists
-                        ord.setClient(client);
-                        ord.setSeller(seller);
-                        client.getOrders().add(ord);
-                        seller.getOrders().add(ord);
-                        NodeList firmNodes = doc.getElementsByTagName("DeliveryScheduleFirm");
-                        for (int ii = 0; ii < firmNodes.getLength(); ii++) {
-                            Node firmNode = firmNodes.item(ii);
-                            if (firmNode.getNodeType() == Node.ELEMENT_NODE) {
-                                Element firmElement = (Element) firmNode;
-
-                                // Assuming we need the firm information in the form of "ScheduleLineFirm"
-                                NodeList scheduleLineFirms = firmElement.getElementsByTagName("ScheduleLineFirm");
-                                List<firmitem> firmItems = new ArrayList<>();
-
-                                // Loop through each ScheduleLineFirm and extract firm details
-                                for (int j = 0; j < scheduleLineFirms.getLength(); j++) {
-                                    Element scheduleLineFirmElement = (Element) scheduleLineFirms.item(j);
-
-                                    firmitem firmItem = new firmitem();
-
-                                    // Extract Delivery Quantity
-                                    String deliveryQuantityFirm = scheduleLineFirmElement.getElementsByTagName("DeliveryQuantityFirm").item(0).getTextContent();
-                                    firmItem.setDeliveryQuantity(deliveryQuantityFirm);
-
-                                    // Extract Delivery Dates (After and Before)
-                                    NodeList deliveryDates = scheduleLineFirmElement.getElementsByTagName("DeliveryDateFirm");
-                                    String deliveryDateAfter = null;
-                                    String deliveryDateBefore = null;
-
-                                    for (int k = 0; k < deliveryDates.getLength(); k++) {
-                                        Element deliveryDateElement = (Element) deliveryDates.item(k);
-                                        String qualifier = deliveryDateElement.getAttribute("Qualifier");
-                                        String deliveryDate = deliveryDateElement.getTextContent();
-
-                                        if ("After".equals(qualifier)) {
-                                            deliveryDateAfter = deliveryDate;
-                                        } else if ("Before".equals(qualifier)) {
-                                            deliveryDateBefore = deliveryDate;
-                                        }
-                                    }
-
-                                    // Set Delivery Dates to the firmItem
-                                    firmItem.setDeliveryDateAfter(deliveryDateAfter);
-                                    firmItem.setDeliveryDateBefore(deliveryDateBefore);
-                                    firmItem.setOrder(ord);
-                                    // Add the firm item to the list
-                                    ord.getFirmItems().add(firmItem);
-                                }
-
-                                // Assuming you are adding firmItems to your order
-
-                            }
-                        }
-                        NodeList forecastNodes = doc.getElementsByTagName("DeliveryScheduleForecast");
-                        for (int i1 = 0; i1 < forecastNodes.getLength(); i1++) {
-                            Node forecastNode = forecastNodes.item(i1);
-                            if (forecastNode.getNodeType() == Node.ELEMENT_NODE) {
-                                Element forecastElement = (Element) forecastNode;
-
-                                // Assuming we need the forecast information in the form of "ScheduleLine"
-                                NodeList scheduleLines = forecastElement.getElementsByTagName("ScheduleLine");
-                                List<forecastitem> forecastItems = new ArrayList<>();
-
-                                // Loop through each ScheduleLine and extract forecast details
-                                for (int j = 0; j < scheduleLines.getLength(); j++) {
-                                    Element scheduleLineElement = (Element) scheduleLines.item(j);
-
-                                    forecastitem forecastItem = new forecastitem();
-
-                                    // Extract Delivery Quantity
-                                    String deliveryQuantity = scheduleLineElement.getElementsByTagName("DeliveryQuantity").item(0).getTextContent();
-                                    forecastItem.setForecastQuantity(deliveryQuantity);
-
-                                    // Extract Delivery Dates (After and Before)
-                                    NodeList deliveryDates = scheduleLineElement.getElementsByTagName("DeliveryDate");
-                                    String deliveryDateAfter = null;
-                                    String deliveryDateBefore = null;
-
-                                    for (int k = 0; k < deliveryDates.getLength(); k++) {
-                                        Element deliveryDateElement = (Element) deliveryDates.item(k);
-                                        String qualifier = deliveryDateElement.getAttribute("Qualifier");
-                                        String deliveryDate = deliveryDateElement.getTextContent();
-
-                                        if ("After".equals(qualifier)) {
-                                            deliveryDateAfter = deliveryDate;
-                                        } else if ("Before".equals(qualifier)) {
-                                            deliveryDateBefore = deliveryDate;
-                                        }
-                                    }
-
-                                    // Set Delivery Dates to the forecastItem
-                                    forecastItem.setForecastDateAfter(deliveryDateAfter);
-                                    forecastItem.setForecastDateBefore(deliveryDateBefore);
-                                    forecastItem.setOrder(ord);
-                                    // Add the forecast item to the list
-                                    ord.getForecastItems().add(forecastItem);
-                                }
-
-                                // Assuming you are adding forecastItems to your ord
-                            }
-                        }
-
-
-                        // Save the order which will also persist the quantity due to cascade
-                        orderrepository.save(ord); // Save the order, which will also persist quantity if cascaded
-
-                        System.out.println("Saved Order: " + ord);
                     } else {
-                        System.out.println("Skipped Order (duplicate DocumentID in database): " + documentID);
+                        ord = existingOrders.get(0); // Get existing order
                     }
-                }}} catch (Exception e) {
+
+                    // Update Order fields
+                    ord.setBuyerArticleNumber(buyerArticleNumber);
+                    ord.setDescription(description);
+                    ord.setDocumentNumber(documentNumber);
+                    ord.setIssueDate(issueDate);
+                    ord.setCalculationDate(calculationDate);
+                    ord.setShipto(shipToIdentifier);
+                    ord.setInternaldestination(internalDestination);
+                    ord.setPlaceofdischarge(placeOfDischarge);
+
+                    // Handle Quantity: Create or Update
+                    quantity q = ord.getQuantity();
+                    boolean hasQuantityData = false;
+
+                    if (q == null) {
+                        q = new quantity();
+                        q.setOrder(ord);
+                    }
+
+                    if (cumulativeReceivedQuantity != null) {
+                        q.setCumulativeReceivedQuantity(cumulativeReceivedQuantity);
+                        hasQuantityData = true;
+                    }
+                    if (latestReceivedQuantity != null) {
+                        q.setLatestReceivedQuantity(latestReceivedQuantity);
+                        hasQuantityData = true;
+                    }
+                    if (receivingDate != null) {
+                        q.setReceivingDate(receivingDate);
+                        hasQuantityData = true;
+                    }
+                    if (deliveryNoteDocNumber != null) {
+                        q.setDeliveryNoteDocNumber(deliveryNoteDocNumber);
+                        hasQuantityData = true;
+                    }
+
+                    if (hasQuantityData) {
+                        ord.setQuantity(q);
+                    } else {
+                        ord.setQuantity(null); // Remove quantity if no data is present
+                    }
+
+                    // Set Client and Seller associations
+                    ord.setClient(client);
+                    ord.setSeller(seller);
+                    client.getOrders().add(ord);
+                    seller.getOrders().add(ord);
+
+                    // Handle Firm Items: Clear and Recreate
+                    ord.getFirmItems().clear(); // Clear existing firm items
+                    NodeList firmNodes = doc.getElementsByTagName("DeliveryScheduleFirm");
+                    for (int ii = 0; ii < firmNodes.getLength(); ii++) {
+                        Node firmNode = firmNodes.item(ii);
+                        if (firmNode.getNodeType() == Node.ELEMENT_NODE) {
+                            Element firmElement = (Element) firmNode;
+
+                            NodeList scheduleLineFirms = firmElement.getElementsByTagName("ScheduleLineFirm");
+                            for (int j = 0; j < scheduleLineFirms.getLength(); j++) {
+                                Element scheduleLineFirmElement = (Element) scheduleLineFirms.item(j);
+
+                                firmitem firmItem = new firmitem();
+                                String deliveryQuantityFirm = scheduleLineFirmElement.getElementsByTagName("DeliveryQuantityFirm").item(0).getTextContent();
+                                firmItem.setDeliveryQuantity(deliveryQuantityFirm);
+
+                                NodeList deliveryDates = scheduleLineFirmElement.getElementsByTagName("DeliveryDateFirm");
+                                LocalDate deliveryDateAfter = null;
+                                LocalDate deliveryDateBefore = null;
+
+                                for (int k = 0; k < deliveryDates.getLength(); k++) {
+                                    Element deliveryDateElement = (Element) deliveryDates.item(k);
+                                    String qualifier = deliveryDateElement.getAttribute("Qualifier");
+                                    String deliveryDate = deliveryDateElement.getTextContent();
+
+                                    if ("After".equals(qualifier)) {
+                                        deliveryDateAfter = deliveryDate != null ? LocalDate.parse(deliveryDate) : null;
+                                    } else if ("Before".equals(qualifier)) {
+                                        deliveryDateBefore = deliveryDate != null ? LocalDate.parse(deliveryDate) : null;
+                                    }
+                                }
+
+                                firmItem.setDeliveryDateAfter(deliveryDateAfter);
+                                firmItem.setDeliveryDateBefore(deliveryDateBefore);
+                                firmItem.setOrder(ord);
+                                ord.getFirmItems().add(firmItem);
+                            }
+                        }
+                    }
+
+                    // Handle Forecast Items: Clear and Recreate
+                    ord.getForecastItems().clear(); // Clear existing forecast items
+                    NodeList forecastNodes = doc.getElementsByTagName("DeliveryScheduleForecast");
+                    for (int i1 = 0; i1 < forecastNodes.getLength(); i1++) {
+                        Node forecastNode = forecastNodes.item(i1);
+                        if (forecastNode.getNodeType() == Node.ELEMENT_NODE) {
+                            Element forecastElement = (Element) forecastNode;
+
+                            NodeList scheduleLines = forecastElement.getElementsByTagName("ScheduleLine");
+                            for (int j = 0; j < scheduleLines.getLength(); j++) {
+                                Element scheduleLineElement = (Element) scheduleLines.item(j);
+
+                                forecastitem forecastItem = new forecastitem();
+                                String deliveryQuantity = scheduleLineElement.getElementsByTagName("DeliveryQuantity").item(0).getTextContent();
+                                forecastItem.setForecastQuantity(deliveryQuantity);
+
+                                NodeList deliveryDates = scheduleLineElement.getElementsByTagName("DeliveryDate");
+                                LocalDate deliveryDateAfter = null;
+                                LocalDate deliveryDateBefore = null;
+
+                                for (int k = 0; k < deliveryDates.getLength(); k++) {
+                                    Element deliveryDateElement = (Element) deliveryDates.item(k);
+                                    String qualifier = deliveryDateElement.getAttribute("Qualifier");
+                                    String deliveryDate = deliveryDateElement.getTextContent();
+
+                                    if ("After".equals(qualifier)) {
+                                        deliveryDateAfter = deliveryDate != null ? LocalDate.parse(deliveryDate) : null;
+                                    } else if ("Before".equals(qualifier)) {
+                                        deliveryDateBefore = deliveryDate != null ? LocalDate.parse(deliveryDate) : null;
+                                    }
+                                }
+
+                                forecastItem.setForecastDateAfter(deliveryDateAfter);
+                                forecastItem.setForecastDateBefore(deliveryDateBefore);
+                                forecastItem.setOrder(ord);
+                                ord.getForecastItems().add(forecastItem);
+                            }
+                        }
+                    }
+
+                    // Save the order (creates or updates, cascades to quantity, firm items, and forecast items)
+                    orderrepository.save(ord);
+                    System.out.println("Saved/Updated Order: " + ord);
+                }
+            }
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
     // Check if DocumentID already exists in the database

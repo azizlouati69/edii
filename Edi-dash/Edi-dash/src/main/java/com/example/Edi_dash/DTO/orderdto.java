@@ -1,5 +1,6 @@
 package com.example.Edi_dash.DTO;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -9,9 +10,9 @@ public class orderdto{
     private String buyerArticleNumber;
     private String documentId;
     private String documentNumber;
-    private String issueDate;
+    private LocalDate issueDate;
     // Constructor
-    public orderdto( Long id , String documentId,String description, String buyerArticleNumber, String documentNumber, String issueDate) {
+    public orderdto( Long id , String documentId,String description, String buyerArticleNumber, String documentNumber, LocalDate issueDate) {
         this.id = id;
         this.description = description;
         this.buyerArticleNumber = buyerArticleNumber;
@@ -78,11 +79,11 @@ public class orderdto{
         this.documentNumber = documentNumber;
     }
 
-    public String getIssueDate() {
+    public LocalDate getIssueDate() {
         return issueDate;
     }
 
-    public void setIssueDate(String issueDate) {
+    public void setIssueDate(LocalDate issueDate) {
         this.issueDate = issueDate;
     }
 // Getters and setters...

@@ -1,4 +1,5 @@
 package com.example.Edi_dash.sevice;
+
 import com.example.Edi_dash.DTO.orderdto;
 import entities.model.firmitem;
 import entities.model.forecastitem;
@@ -30,23 +31,25 @@ import java.time.temporal.TemporalAdjusters;
 import java.time.temporal.WeekFields;
 import java.util.*;
 import java.util.stream.Collectors;
+
 @Transactional
 @Service
 public class orderservice {
     private static final Logger log = Logger.getLogger(orderservice.class.getName());
     @Autowired
     private PlatformTransactionManager transactionManager;
-    private static   orderrepository orderRepository;
-    private static forecastitemrepository forecastRepository ;
-    private static firmrepository firmRepository ;
-    private static quantityrepository quantityRepository ;
-    private static sellerrepository sellerRepository ;
-    private static clientrepository  clientRepository ;
+    private static orderrepository orderRepository;
+    private static forecastitemrepository forecastRepository;
+    private static firmrepository firmRepository;
+    private static quantityrepository quantityRepository;
+    private static sellerrepository sellerRepository;
+    private static clientrepository clientRepository;
     @PersistenceContext
-    private   EntityManager entityManager;
-    public orderservice(orderrepository orderRepository,quantityrepository quantityRepository,
-                         forecastitemrepository forecastRepository,
-                         firmrepository firmRepository,sellerrepository sellerRepository,clientrepository clientRepository) {
+    private EntityManager entityManager;
+
+    public orderservice(orderrepository orderRepository, quantityrepository quantityRepository,
+                        forecastitemrepository forecastRepository,
+                        firmrepository firmRepository, sellerrepository sellerRepository, clientrepository clientRepository) {
         this.orderRepository = orderRepository;
         this.forecastRepository = forecastRepository;
         this.firmRepository = firmRepository;
@@ -54,14 +57,14 @@ public class orderservice {
         this.sellerRepository = sellerRepository;
         this.clientRepository = clientRepository;
     }
-    public  order  getOrderByDocumentId(String  docId) {
-        return orderRepository.findByDocumentId(docId).get(0);
 
+    public order getOrderByDocumentId(String docId) {
+        return orderRepository.findByDocumentId(docId).get(0);
     }
+
     public Optional<quantity> getqById(Long id) {
         return quantityRepository.findById(id);
     }
-
 
     public void deleteOrder(Long orderId) {
         order orderToDelete = orderRepository.findById(orderId)
@@ -124,65 +127,34 @@ public class orderservice {
     }
 
     public Long getOrdersThisMonth() {
-        List<order> allOrders = orderRepository.findAll();
-
-        return allOrders.stream()
-                .filter(o -> {
-                    try {
-                        String rawDate = o.getIssueDate();
-                        // Parse from custom string
-                        LocalDate date = LocalDate.parse(rawDate.substring(0, 10)); // yyyy-MM-dd
-
-                        YearMonth orderMonth = YearMonth.from(date);
-                        YearMonth currentMonth = YearMonth.now();
-
-                        return orderMonth.equals(currentMonth);
-                    } catch (Exception e) {
-                        return false; // skip malformed dates
-                    }
-                })
-                .count();
+        LocalDate startOfMonth = LocalDate.now().withDayOfMonth(1);
+        LocalDate endOfMonth = LocalDate.now().with(TemporalAdjusters.lastDayOfMonth());
+        return orderRepository.findOrdersBetween(startOfMonth, endOfMonth).stream().count();
     }
+
     public List<Map<String, Object>> getTop3BuyerArticles() {
         Pageable topThree = PageRequest.of(0, 3);
         List<Object[]> results = orderRepository.findTop3MostFrequentBuyerArticles(topThree);
-
-        List<Map<String, Object>> topArticles = new ArrayList<>();
-        for (Object[] row : results) {
-            Map<String, Object> entry = new HashMap<>();
-            entry.put("article", row[0]);
-            entry.put("count", row[1]);
-            topArticles.add(entry);
-        }
-        return topArticles;
+        return mapResults(results);
     }
+
     public List<Map<String, Object>> getTop3BuyerArticlesThisMonth() {
         Pageable topThree = PageRequest.of(0, 3);
-
-        // Extract "yyyy-MM" from current date
-        String currentMonth = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM"));
-
-        // Fetch top 3 for current month
-        List<Object[]> results = orderRepository.findTop3MostFrequentBuyerArticles(currentMonth, topThree);
-
-        List<Map<String, Object>> topArticles = new ArrayList<>();
-        for (Object[] row : results) {
-            Map<String, Object> entry = new HashMap<>();
-            entry.put("article", row[0]);
-            entry.put("count", row[1]);
-            topArticles.add(entry);
-        }
-        return topArticles;
+        LocalDate startOfMonth = LocalDate.now().withDayOfMonth(1);
+        LocalDate endOfMonth = LocalDate.now().with(TemporalAdjusters.lastDayOfMonth());
+        List<Object[]> results = orderRepository.findTop3MostFrequentBuyerArticlesThisMonth(startOfMonth, endOfMonth, topThree);
+        return mapResults(results);
     }
+
     public List<Map<String, Object>> getTop3BuyerArticlesThisYear() {
-        String year = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy"));
+        int year = LocalDate.now().getYear();
         Pageable topThree = PageRequest.of(0, 3);
         List<Object[]> results = orderRepository.findTop3MostFrequentBuyerArticlesThisYear(year, topThree);
         return mapResults(results);
     }
 
     public List<Map<String, Object>> getTop3BuyerArticlesToday() {
-        String today = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        LocalDate today = LocalDate.now();
         Pageable topThree = PageRequest.of(0, 3);
         List<Object[]> results = orderRepository.findTop3MostFrequentBuyerArticlesToday(today, topThree);
         return mapResults(results);
@@ -193,9 +165,9 @@ public class orderservice {
         DayOfWeek firstDayOfWeek = WeekFields.of(Locale.getDefault()).getFirstDayOfWeek();
         LocalDate startOfWeek = today.with(TemporalAdjusters.previousOrSame(firstDayOfWeek));
 
-        List<String> weekDates = new ArrayList<>();
+        List<LocalDate> weekDates = new ArrayList<>();
         for (int i = 0; i < 7; i++) {
-            weekDates.add(startOfWeek.plusDays(i).format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+            weekDates.add(startOfWeek.plusDays(i));
         }
 
         Pageable topThree = PageRequest.of(0, 3);
@@ -216,35 +188,17 @@ public class orderservice {
 
     // Orders This Week
     public Long getOrdersThisWeek() {
-        List<order> allOrders = orderRepository.findAll();
-
         LocalDate today = LocalDate.now();
-        // Monday as the start of the week
-        LocalDate startOfWeek = today.with(DayOfWeek.MONDAY);
+        LocalDate startOfWeek = today.with(DayOfWeek.MONDAY); // Monday as the start of the week
+        LocalDate endOfWeek = today.with(DayOfWeek.SUNDAY); // Sunday as the end of the week, or today if it's earlier in the week
 
-        return allOrders.stream()
-                .filter(o -> {
-                    try {
-                        String rawDate = o.getIssueDate();
-                        LocalDate orderDate = LocalDate.parse(rawDate.substring(0, 10)); // "yyyy-MM-dd"
-                        return !orderDate.isBefore(startOfWeek) && !orderDate.isAfter(today);
-                    } catch (Exception e) {
-                        return false;
-                    }
-                })
-                .count();
+        return orderRepository.findOrdersBetween(startOfWeek, endOfWeek).stream().count();
     }
+
     public List<order> getOrdersForToday() {
-        LocalDateTime todayStart = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0);
-        LocalDateTime todayEnd = todayStart.withHour(23).withMinute(59).withSecond(59).withNano(999999999);
-
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-ddHHmm");
-        String startDate = todayStart.format(formatter);
-        String endDate = todayEnd.format(formatter);
-
-        return orderRepository.findOrdersBetween(startDate, endDate);
+        LocalDate today = LocalDate.now();
+        return orderRepository.findByIssueDate(today);
     }
-
 
     public Map<String, Long> getMonthlyOrderCounts() {
         List<Object[]> result = orderRepository.getMonthlyOrderCounts();
@@ -258,74 +212,49 @@ public class orderservice {
     }
 
     public List<order> getOrdersForThisWeek() {
-        LocalDateTime startOfWeek = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY)).atStartOfDay();
-        LocalDateTime endOfWeek = startOfWeek.plusDays(6).withHour(23).withMinute(59).withSecond(59).withNano(999999999);
-
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-ddHHmm");
-        String startDate = startOfWeek.format(formatter);
-        String endDate = endOfWeek.format(formatter);
-
-        return orderRepository.findOrdersBetween(startDate, endDate);
+        LocalDate startOfWeek = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        LocalDate endOfWeek = LocalDate.now().with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
+        return orderRepository.findOrdersBetween(startOfWeek, endOfWeek);
     }
 
     // For This Month
     public List<order> getOrdersForThisMonth() {
-        LocalDateTime startOfMonth = LocalDate.now().withDayOfMonth(1).atStartOfDay();
-        LocalDateTime endOfMonth = startOfMonth.plusMonths(1).minusSeconds(1);
-
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-ddHHmm");
-        String startDate = startOfMonth.format(formatter);
-        String endDate = endOfMonth.format(formatter);
-
-        return orderRepository.findOrdersBetween(startDate, endDate);
+        LocalDate startOfMonth = LocalDate.now().withDayOfMonth(1);
+        LocalDate endOfMonth = LocalDate.now().with(TemporalAdjusters.lastDayOfMonth());
+        return orderRepository.findOrdersBetween(startOfMonth, endOfMonth);
     }
+
     public List<orderdto> getTop5LatestOrders() {
-        Pageable top5 = PageRequest.of(0, 5);  // Page 0, with size of 3
-        List<Object[]> orders = orderRepository.findTop3Orders(top5);
+        Pageable top5 = PageRequest.of(0, 5);
+        List<Object[]> orders = orderRepository.findTop3Orders(top5); // Note: Method name implies top 3, but pageable is 5
 
         // Map each Object[] to an OrderDTO
         return orders.stream()
                 .map(order -> new orderdto(
-                        (Long) order[0],                     // o.id
-                        (String) order[1],                   // o.documentId
-                        (String) order[2],                   // o.description
-                        (String) order[3],                   // o.buyerArticleNumber
-                        (String) order[4],                   // o.documentNumber
-                        (String) order[5]             // o.issueDate
+                        (Long) order[0],         // o.id
+                        (String) order[1],       // o.documentId
+                        (String) order[2],       // o.description
+                        (String) order[3],       // o.buyerArticleNumber
+                        (String) order[4],       // o.documentNumber
+                        (LocalDate) order[5]        // o.issueDate
                 ))
                 .collect(Collectors.toList());
     }
+
     // For This Year
     public List<order> getOrdersForThisYear() {
-        LocalDateTime startOfYear = LocalDate.now().withDayOfYear(1).atStartOfDay();
-        LocalDateTime endOfYear = startOfYear.plusYears(1).minusSeconds(1);
-
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-ddHHmm");
-        String startDate = startOfYear.format(formatter);
-        String endDate = endOfYear.format(formatter);
-
-        return orderRepository.findOrdersBetween(startDate, endDate);
+        LocalDate startOfYear = LocalDate.now().withDayOfYear(1);
+        LocalDate endOfYear = LocalDate.now().with(TemporalAdjusters.lastDayOfYear());
+        return orderRepository.findOrdersBetween(startOfYear, endOfYear);
     }
 
     public Long getOrdersToday() {
-        List<order> allOrders = orderRepository.findAll();
-
         LocalDate today = LocalDate.now();
-
-        return allOrders.stream()
-                .filter(o -> {
-                    try {
-                        String rawDate = o.getIssueDate();
-                        LocalDate orderDate = LocalDate.parse(rawDate.substring(0, 10)); // yyyy-MM-dd
-                        return orderDate.equals(today);
-                    } catch (Exception e) {
-                        return false;
-                    }
-                })
-                .count();
+        return orderRepository.findByIssueDate(today).stream().count();
     }
+
     public Long getTotalOrdersThisYear() {
-        String currentYear = String.valueOf(Year.now().getValue());
+        int currentYear = Year.now().getValue();
         return orderRepository.getTotalOrdersThisYear(currentYear);
     }
 
@@ -336,34 +265,62 @@ public class orderservice {
     public List<order> searchByDocumentId(String documentId) {
         return orderRepository.findByDocumentIdContainingIgnoreCase(documentId);
     }
+
     public List<order> searchByDocumentNumber(String documentnumber) {
         return orderRepository.findByDocumentNumberContainingIgnoreCase(documentnumber);
     }
+
     public List<order> searchByDescription(String description) {
         return orderRepository.findByDescriptionContainingIgnoreCase(description);
     }
+
     public List<order> searchByBuyerArticleNumber(String buyerArticleNumber) {
         return orderRepository.findByBuyerArticleNumberContainingIgnoreCase(buyerArticleNumber);
     }
-    public List<order> searchByIssueDate(String IssueDate) {
-        return orderRepository.findByIssueDateContainingIgnoreCase(IssueDate);
+
+    public List<order> searchByIssueDate(String partialDateString) {
+        if (partialDateString == null || partialDateString.trim().isEmpty()) {
+            log.warning("Partial date string for substring search cannot be empty.");
+            return Collections.emptyList();
+        }
+
+        // IMPORTANT: UNCOMMENT THE LINE BELOW THAT CORRESPONDS TO YOUR DATABASE
+        // AND COMMENT OUT THE OTHERS.
+
+
+
+
+         return orderRepository.findByIssueDateContainingStringMySQL(partialDateString);
+
     }
+
     public List<order> searchByCalculationDate(String CalculationDate) {
-        return orderRepository.findByCalculationDateContainingIgnoreCase(CalculationDate);
+        // Assuming CalculationDate string format is "yyyy-MM-dd"
+        try {
+            LocalDate date = LocalDate.parse(CalculationDate);
+            return orderRepository.findByCalculationDate(date);
+        } catch (Exception e) {
+            log.warning("Invalid CalculationDate format: " + CalculationDate + ". Please use yyyy-MM-dd.");
+            return Collections.emptyList();
+        }
     }
+
     public List<order> searchByShipto(String Shipto) {
         return orderRepository.findByShiptoContainingIgnoreCase(Shipto);
     }
+
     public List<order> searchByInternaldestination(String Internaldestination) {
         return orderRepository.findByInternaldestinationContainingIgnoreCase(Internaldestination);
     }
+
     public List<order> searchByPlaceofdischarge(String Placeofdischarge) {
         return orderRepository.findByPlaceofdischargeContainingIgnoreCase(Placeofdischarge);
     }
-    public Optional<order> getOrderById(Long  Id) {
-        return orderRepository.findById(Id);
 
+    public Optional<order> getOrderById(Long Id) {
+        return orderRepository.findById(Id);
     }
+
     public List<order> getAllOrders() {
         return orderRepository.findAll();
     }

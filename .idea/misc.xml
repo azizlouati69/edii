@@ -18,6 +18,7 @@
         <option value="$PROJECT_DIR$/shared-library/pom.xml" />
         <option value="$PROJECT_DIR$/Edi-dash/Edi-dash/pom.xml" />
         <option value="$PROJECT_DIR$/AuthService/AuthService/pom.xml" />
+        <option value="$PROJECT_DIR$/ediASN/EdiASN/pom.xml" />
       </list>
     </option>
     <option name="ignoredFiles">

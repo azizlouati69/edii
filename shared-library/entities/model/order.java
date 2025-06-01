@@ -1,14 +1,9 @@
-package  entities.model;
+package entities.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
-import jakarta.persistence.*;
-
-import java.util.ArrayList;
-import java.util.List;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,8 +19,8 @@ public class order {
     @Column(name = "document_id")  // Ensure the column name is correct
     private String documentId;
     private String documentNumber;
-    private String issueDate;
-    private String calculationDate;
+    private LocalDate issueDate;
+    private LocalDate calculationDate;
     private String shipto;
     private String placeofdischarge;
     private String internaldestination;
@@ -77,7 +72,6 @@ public class order {
     public   void setSeller(seller seller) {
         this.seller = seller;
     }
-
 
     public Long getId() {
         return id;
@@ -143,19 +137,19 @@ public class order {
         this.documentNumber = documentNumber;
     }
 
-    public String getIssueDate() {
+    public LocalDate getIssueDate() {
         return issueDate;
     }
 
-    public void setIssueDate(String issueDate) {
+    public void setIssueDate(LocalDate issueDate) {
         this.issueDate = issueDate;
     }
 
-    public String getCalculationDate() {
+    public LocalDate getCalculationDate() {
         return calculationDate;
     }
 
-    public void setCalculationDate(String calculationDate) {
+    public void setCalculationDate(LocalDate calculationDate) {
         this.calculationDate = calculationDate;
     }
 

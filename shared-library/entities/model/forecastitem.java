@@ -1,8 +1,9 @@
-package  entities.model;
+package entities.model;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
+import java.time.LocalDate;
 
 @Entity
 public class forecastitem {
@@ -11,13 +12,12 @@ public class forecastitem {
     private Long id;
 
     private String forecastQuantity;
-    private String forecastDateAfter;
-    private String forecastDateBefore;
+    private LocalDate forecastDateAfter;
+    private LocalDate forecastDateBefore;
 
     @ManyToOne
     @JoinColumn(name = "order_id")
     @JsonBackReference
-
     private order order;
 
     // Getters and Setters
@@ -37,19 +37,19 @@ public class forecastitem {
         this.forecastQuantity = forecastQuantity;
     }
 
-    public String getForecastDateAfter() {
+    public LocalDate getForecastDateAfter() {
         return forecastDateAfter;
     }
 
-    public void setForecastDateAfter(String forecastDateAfter) {
+    public void setForecastDateAfter(LocalDate forecastDateAfter) {
         this.forecastDateAfter = forecastDateAfter;
     }
 
-    public String getForecastDateBefore() {
+    public LocalDate getForecastDateBefore() {
         return forecastDateBefore;
     }
 
-    public void setForecastDateBefore(String forecastDateBefore) {
+    public void setForecastDateBefore(LocalDate forecastDateBefore) {
         this.forecastDateBefore = forecastDateBefore;
     }
 

@@ -1,17 +1,20 @@
 package com.example.Edi_dash.DTO;
 
+import java.time.LocalDate;
+
 public class recentclientdto {
     private Long id;
     private String buyerIdentifier;
     private String senderId;
-    private String recentOrderDate;
+        private LocalDate recentOrderDate;
 
-    public recentclientdto(Long id, String buyerIdentifier, String senderId, String recentOrderDate) {
+    public recentclientdto(Long id, String buyerIdentifier, String senderId, LocalDate recentOrderDate) {
         this.id = id;
         this.buyerIdentifier = buyerIdentifier;
         this.senderId = senderId;
         this.recentOrderDate = recentOrderDate;
     }
+
 
     public Long getId() {
         return id;
@@ -37,11 +40,11 @@ public class recentclientdto {
         this.senderId = senderId;
     }
 
-    public String getRecentOrderDate() {
+    public LocalDate getRecentOrderDate() {
         return recentOrderDate;
     }
 
-    public void setRecentOrderDate(String recentOrderDate) {
+    public void setRecentOrderDate(LocalDate recentOrderDate) {
         this.recentOrderDate = recentOrderDate;
     }
 // getters & setters

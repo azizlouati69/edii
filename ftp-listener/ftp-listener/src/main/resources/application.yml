@@ -3,20 +3,5 @@ server:
 spring:
   application:
     name: ftp-listener
-eureka:
-  client:
-    service-url:
-      register-with-eureka: true
-      fetch-registry: true
-      defaultZone: http://localhost:8761/eureka/
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info
 
 
-
-
-path:
-  c:/txt
