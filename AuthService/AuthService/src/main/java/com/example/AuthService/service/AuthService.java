@@ -10,10 +10,12 @@ import com.example.AuthService.repository.VerificationTokenRepository;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -80,24 +82,69 @@ public class AuthService {
 
         mailSender.send(message);
     }
+    public User updateProfile(String username, UpdateProfileRequest request) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        if (request.getPhone() != null && !request.getPhone().isBlank()) {
+            // Check if phone is already used by another user
+            Optional<User> userWithPhone = userRepository.findByPhone(request.getPhone());
+            if (userWithPhone.isPresent() && !userWithPhone.get().getUsername().equals(username)) {
+                throw new IllegalArgumentException("Numéro de téléphone déjà utilisé.");
+            }
+            user.setPhone(request.getPhone());
+        }
+        if (request.getFirstname() != null && !request.getFirstname().isBlank()) {
+            user.setFirstname(request.getFirstname());
+        }
+        if (request.getLastname() != null && !request.getLastname().isBlank()) {
+            user.setLastname(request.getLastname());
+        }
+        if (request.getBio() != null) {
+            user.setBio(request.getBio());
+        }
+        if (request.getBirthday() != null) {
+            user.setBirthday(request.getBirthday());
+        }
+        if (request.getSex() != null) {
+            user.setSex(request.getSex());
+        }
+
+        if (request.getPicture() != null && request.getPicture().length > 0) {
+            user.setPicture(request.getPicture());
+        }
+        return userRepository.save(user);
+    }
+    public void changePassword(String username, ChangePasswordRequest request) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("Mot de passe incorrect");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+    }
     public User loadUserByUsername(String username) {
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
     }
     public AuthResponse authenticate(AuthRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("Compte inexistant"));
+                .orElseThrow(() -> new IllegalArgumentException("Compte inexistant"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Mot de passe incorrect");
+            throw new IllegalArgumentException("Mot de passe incorrect");
         }
         if (!user.isEnabled()) {
-            throw new RuntimeException("Veuillez d'abord vérifier votre adresse email.");
+            throw new IllegalArgumentException("Veuillez d'abord vérifier votre adresse email.");
         }
+
         // Generate both tokens
         String accessToken = jwtService.generateAccessToken(user);
         String refreshToken = jwtService.generateRefreshToken(user);
-        refreshTokenStore.put(user.getUsername(), refreshToken); // ✅ Store it
+        refreshTokenStore.put(user.getUsername(), refreshToken ); // ✅ Store it
 
         // Return both tokens
         return new AuthResponse(accessToken, refreshToken);

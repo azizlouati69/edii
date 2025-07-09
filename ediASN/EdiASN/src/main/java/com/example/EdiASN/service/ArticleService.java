@@ -1,15 +1,12 @@
 package com.example.EdiASN.service;
+import com.example.EdiASN.security.JwtService;
 
 import com.example.EdiASN.dto.ArticleDTO;
 import com.example.EdiASN.entity.Article;
-import com.example.EdiASN.entity.Cardboard;
-import com.example.EdiASN.entity.Client;
 import com.example.EdiASN.repository.ArticleRepository;
 import com.example.EdiASN.repository.CardboardRepository;
 import com.example.EdiASN.repository.ClientRepository;
-import com.example.EdiASN.security.JwtService;
-import com.example.EdiASN.security.JwtUtils;
-import jakarta.persistence.EntityManager;
+ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.*;
@@ -29,8 +26,7 @@ public class ArticleService {
     @Autowired
     private JwtService jwtService;
 
-    @Autowired
-    private JwtUtils jwtUtils;
+
     @PersistenceContext
     private EntityManager entityManager;
     @Autowired
@@ -68,11 +64,7 @@ public class ArticleService {
         article.setNet_weight(dto.getNet_weight());
         article.setLot_number(dto.getLot_number());
         article.setOrder_number(dto.getOrder_number());
-        if (dto.getClientId() != null) {
-            Client client = clientRepository.findById(dto.getClientId())
-                    .orElseThrow(() -> new RuntimeException("Client not found"));
-            article.setClient(client);
-        }
+
         return articleRepository.save(article);
     }
 
@@ -86,11 +78,7 @@ public class ArticleService {
         if (dto.getNet_weight() != null) article.setNet_weight(dto.getNet_weight());
         if (dto.getLot_number() != null) article.setLot_number(dto.getLot_number());
         if (dto.getOrder_number() != null) article.setOrder_number(dto.getOrder_number());
-        if (dto.getClientId() != null) {
-            Client client = clientRepository.findById(dto.getClientId())
-                    .orElseThrow(() -> new RuntimeException("Client not found"));
-            article.setClient(client);
-        }
+
         return articleRepository.save(article);
     }
 
@@ -119,11 +107,7 @@ public class ArticleService {
         if (dto.getNet_weight() != null) article.setNet_weight(dto.getNet_weight());
         if (dto.getLot_number() != null) article.setLot_number(dto.getLot_number());
         if (dto.getOrder_number() != null) article.setOrder_number(dto.getOrder_number());
-        if (dto.getClientId() != null) {
-            Client client = clientRepository.findById(dto.getClientId())
-                    .orElseThrow(() -> new RuntimeException("Client not found"));
-            article.setClient(client);
-        }
+
         return articleRepository.save(article);
     }
     public List<Article> searchArticlesByUser(ArticleDTO searchDTO, Long userId) {
@@ -160,11 +144,7 @@ public class ArticleService {
         if (searchDTO.getOrder_number() != null) {
             predicates.add(cb.like(cb.lower(root.get("order_number")), "%" + searchDTO.getOrder_number().toLowerCase() + "%"));
         }
-        // Join with Client entity to filter by client name
-        if (searchDTO.getClientName() != null) {
-            Join<Article, Client> clientJoin = root.join("client", JoinType.LEFT);
-            predicates.add(cb.like(cb.lower(clientJoin.get("name")), "%" + searchDTO.getClientName().toLowerCase() + "%"));
-        }
+
 
         query.where(cb.and(predicates.toArray(new Predicate[0])));
 
@@ -203,10 +183,7 @@ public class ArticleService {
         if (searchDTO.getOrder_number() != null) {
             predicates.add(cb.like(cb.lower(root.get("order_number")), "%" + searchDTO.getOrder_number().toLowerCase() + "%"));
         }
-        if (searchDTO.getClientName() != null) {
-            Join<Article, Client> clientJoin = root.join("client", JoinType.LEFT);
-            predicates.add(cb.like(cb.lower(clientJoin.get("name")), "%" + searchDTO.getClientName().toLowerCase() + "%"));
-        }
+
 
         query.where(cb.and(predicates.toArray(new Predicate[0])));
 
@@ -217,41 +194,13 @@ public class ArticleService {
         Article article = getArticleByIdGlobal(id);
         articleRepository.delete(article);
     }
-    // For the authenticated user
-    public Article setDefaultCardboardByUser(Long articleId, Long cardboardId, Long userId) {
-        // Check ownership of the article
-        Article article = articleRepository.findById(articleId)
-                .orElseThrow(() -> new RuntimeException("Article not found"));
-
-        if (!article.getUserId().equals(userId)) {
-            throw new RuntimeException("Access denied: You do not own this article.");
-        }
-
-        // Check ownership of the cardboard
-        Cardboard cardboard = cardboardRepository.findById(cardboardId)
-                .orElseThrow(() -> new RuntimeException("Cardboard not found"));
-
-        if (!cardboard.getUserId().equals(userId)) {
-            throw new RuntimeException("Access denied: You do not own this cardboard.");
-        }
-
-        // Assign and save
-        article.setDefaultcardboard(cardboard);
-        return articleRepository.save(article);
-    }
 
 
-    // For admin use (no user ownership check)
-    public Article setDefaultCardboardGlobal(Long articleId, Long cardboardId) {
-        Article article = articleRepository.findById(articleId)
-                .orElseThrow(() -> new RuntimeException("Article not found"));
 
-        Cardboard cardboard = cardboardRepository.findById(cardboardId)
-                .orElseThrow(() -> new RuntimeException("Cardboard not found"));
 
-        article.setDefaultcardboard(cardboard);
-        return articleRepository.save(article);
-    }
+
+
+
 
 
 }

@@ -15,9 +15,8 @@ import repository.forecastitemrepository;
 
 import java.util.List;
 import java.util.Optional;
-@CrossOrigin(origins = "http://localhost:4200")
-@RestController
-@RequestMapping("/clients/")
+ @RestController
+@RequestMapping("edi-dash/clients/")
 public class clientcontroller {
 
     private final clientservice clientService;

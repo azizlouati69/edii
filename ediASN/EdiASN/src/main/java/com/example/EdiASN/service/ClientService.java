@@ -5,7 +5,6 @@ import com.example.EdiASN.dto.ClientDTO;
 import com.example.EdiASN.entity.Client;
 import com.example.EdiASN.repository.ClientRepository;
 import com.example.EdiASN.security.JwtService;
-import com.example.EdiASN.security.JwtUtils;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
@@ -30,8 +29,7 @@ public class ClientService {
     @Autowired
     private JwtService jwtService;
 
-    @Autowired
-    private JwtUtils jwtUtils;
+
     @PersistenceContext
     private EntityManager entityManager;
     public List<Client> searchClients(ClientDTO searchDTO, Long currentUserId) {

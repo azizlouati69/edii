@@ -4,7 +4,6 @@ import com.example.EdiASN.dto.CardboardDTO;
 import com.example.EdiASN.entity.Cardboard;
 import com.example.EdiASN.repository.CardboardRepository;
 import com.example.EdiASN.security.JwtService;
-import com.example.EdiASN.security.JwtUtils;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
@@ -29,8 +28,7 @@ public class CardboardService {
     @Autowired
     private JwtService jwtService;
 
-    @Autowired
-    private JwtUtils jwtUtils;
+
     @PersistenceContext
     private EntityManager entityManager;
     public List<Cardboard> searchCardboards(CardboardDTO searchDTO, Long currentUserId) {

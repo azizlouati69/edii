@@ -29,5 +29,5 @@ public class Invoice {
     @OneToMany(mappedBy = "invoice", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonBackReference
 
-    private List<InvoiceArticle> invoiceArticles = new ArrayList<>();
+    private List<InvoiceArticleClientCardboard> invoiceArticleClientCardboards = new ArrayList<>();
 }

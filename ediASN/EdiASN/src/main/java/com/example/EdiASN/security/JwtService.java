@@ -25,26 +25,7 @@ public class JwtService {
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
-    public String generateAccessToken(User user) {
-        long accessTokenExpiration = 60 * 60 * 1000; // 60 minutes
-        return generateToken(user.getUsername(), user.getId(), accessTokenExpiration, "access");
-    }
 
-    public String generateRefreshToken(User user) {
-        long refreshTokenExpiration = 7 * 24 * 60 * 60 * 1000; // 7 days
-        return generateToken(user.getUsername(), user.getId(), refreshTokenExpiration, "refresh");
-    }
-
-    private String generateToken(String username, Long userId, long expirationMillis, String type) {
-        return Jwts.builder()
-                .setSubject(username)
-                .claim("userId", userId)
-                .claim("type", type)
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + expirationMillis))
-                .signWith(getSignInKey(), SignatureAlgorithm.HS512)
-                .compact();
-    }
 
     public boolean validateToken(String token) {
         try {

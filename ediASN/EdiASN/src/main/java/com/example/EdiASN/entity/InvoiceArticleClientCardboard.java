@@ -7,7 +7,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
-public class InvoiceArticle {
+public class InvoiceArticleClientCardboard {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -22,10 +22,10 @@ public class InvoiceArticle {
     private Invoice invoice;
 
     @ManyToOne
-    @JoinColumn(name = "article_id")
+    @JoinColumn(name = "articleclientcardboard_id")
     @JsonManagedReference
 
-    private Article article;
+    private ArticleClientCardboard articleClientCardboard;
 
 
 }

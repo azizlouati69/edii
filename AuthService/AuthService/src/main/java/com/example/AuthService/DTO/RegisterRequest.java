@@ -2,7 +2,8 @@ package com.example.AuthService.DTO;
 
 
 import lombok.*;
-
+@AllArgsConstructor
+@NoArgsConstructor
 @Data
 public class RegisterRequest {
     private String username;

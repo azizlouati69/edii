@@ -1,22 +1,22 @@
 package com.example.EdiASN.controller;
 
-import com.example.EdiASN.dto.ArticleCardboardRequest;
-import com.example.EdiASN.entity.ArticleCardboard;
+import com.example.EdiASN.dto.ArticleClientCardboardRequest;
+import com.example.EdiASN.entity.ArticleClientCardboard;
 import com.example.EdiASN.security.JwtService;
-import com.example.EdiASN.service.ArticleCardboardService;
+import com.example.EdiASN.service.ArticleClientCardboardService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/art-cards")
-public class ArticleCardboardController {
+@RequestMapping("/edi-asn/artclient-cards")
+public class ArticleClientCardboardController {
 
-    private final ArticleCardboardService articleCardboardService;
+    private final ArticleClientCardboardService articleclientCardboardService;
     @Autowired
     private JwtService jwtService;
-    public ArticleCardboardController(ArticleCardboardService articleCardboardService) {
-        this.articleCardboardService = articleCardboardService;
+    public ArticleClientCardboardController(ArticleClientCardboardService articleclientCardboardService) {
+        this.articleclientCardboardService = articleclientCardboardService;
     }
     private Long extractUserIdFromHeader(String authHeader) {
         String token = authHeader.replace("Bearer ", "");
@@ -24,47 +24,47 @@ public class ArticleCardboardController {
     }
     @GetMapping
     public ResponseEntity<?> getAll() {
-        return ResponseEntity.ok(articleCardboardService.getAll());
+        return ResponseEntity.ok(articleclientCardboardService.getAll());
     }
 
     // ✅ User GET all
     @GetMapping("/user")
     public ResponseEntity<?> getAllByUser(@RequestHeader("Authorization") String authHeader) {
         Long userId = extractUserIdFromHeader(authHeader);
-        return ResponseEntity.ok(articleCardboardService.getAllByUserId(userId));
+        return ResponseEntity.ok(articleclientCardboardService.getAllByUserId(userId));
     }
 
     // ✅ Global GET by ID
     @GetMapping("/{id}")
     public ResponseEntity<?> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(articleCardboardService.getById(id));
+        return ResponseEntity.ok(articleclientCardboardService.getById(id));
     }
 
     // ✅ User GET by ID
     @GetMapping("/user/{id}")
     public ResponseEntity<?> getByIdForUser(@PathVariable Long id, @RequestHeader("Authorization") String authHeader) {
         Long userId = extractUserIdFromHeader(authHeader);
-        return ResponseEntity.ok(articleCardboardService.getByIdForUser(id, userId));
+        return ResponseEntity.ok(articleclientCardboardService.getByIdForUser(id, userId));
     }
 
     // ✅ PUT (partial updates allowed using DTO)
     @PutMapping("/{id}")
-    public ResponseEntity<?> update(@PathVariable Long id, @RequestBody ArticleCardboardRequest request) {
-        return ResponseEntity.ok(articleCardboardService.update(id, request));
+    public ResponseEntity<?> update(@PathVariable Long id, @RequestBody ArticleClientCardboardRequest request) {
+        return ResponseEntity.ok(articleclientCardboardService.update(id, request));
     }
 
     // ✅ PUT (user-secured)
     @PutMapping("/user/{id}")
-    public ResponseEntity<?> updateForUser(@PathVariable Long id, @RequestBody ArticleCardboardRequest request,
+    public ResponseEntity<?> updateForUser(@PathVariable Long id, @RequestBody ArticleClientCardboardRequest request,
                                            @RequestHeader("Authorization") String authHeader) {
         Long userId = extractUserIdFromHeader(authHeader);
-        return ResponseEntity.ok(articleCardboardService.updateForUser(id, request, userId));
+        return ResponseEntity.ok(articleclientCardboardService.updateForUser(id, request, userId));
     }
 
     // ✅ DELETE
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(@PathVariable Long id) {
-        articleCardboardService.delete(id);
+        articleclientCardboardService.delete(id);
         return ResponseEntity.ok().build();
     }
 
@@ -72,16 +72,17 @@ public class ArticleCardboardController {
     @DeleteMapping("/user/{id}")
     public ResponseEntity<?> deleteForUser(@PathVariable Long id, @RequestHeader("Authorization") String authHeader) {
         Long userId = extractUserIdFromHeader(authHeader);
-        articleCardboardService.deleteForUser(id, userId);
+        articleclientCardboardService.deleteForUser(id, userId);
         return ResponseEntity.ok().build();
     }
     @PostMapping
-    public ResponseEntity<?> createArticleCardboard(@RequestBody ArticleCardboardRequest request ,@RequestHeader("Authorization") String authHeader) {
+    public ResponseEntity<?> createArticleClientCardboard(@RequestBody ArticleClientCardboardRequest request ,@RequestHeader("Authorization") String authHeader) {
         try {         Long userId = extractUserIdFromHeader(authHeader);
 
-            ArticleCardboard saved = articleCardboardService.createArticleCardboardg(
-                    request.getArticleId(),
+            ArticleClientCardboard saved = articleclientCardboardService.createArticleClientCardboardg(
+                    request.getArticleClientId(),
                     request.getCardboardId(),
+                    request.getDefault_cardboardId(),
                     request.getQuantityPerCardboard(),userId
             );
             return ResponseEntity.ok(saved);
@@ -91,12 +92,13 @@ public class ArticleCardboardController {
 
     }
     @PostMapping("/user")
-    public ResponseEntity<?> createForCurrentUser(@RequestBody ArticleCardboardRequest request, @RequestHeader("Authorization") String authHeader) {
+    public ResponseEntity<?> createForCurrentUser(@RequestBody ArticleClientCardboardRequest request, @RequestHeader("Authorization") String authHeader) {
         try {
             Long userId = extractUserIdFromHeader(authHeader);
-            ArticleCardboard saved = articleCardboardService.createArticleCardboard(
-                    request.getArticleId(),
+            ArticleClientCardboard saved = articleclientCardboardService.createArticleClientCardboard(
+                    request.getArticleClientId(),
                     request.getCardboardId(),
+                    request.getDefault_cardboardId(),
                     request.getQuantityPerCardboard(),
                     userId
             );

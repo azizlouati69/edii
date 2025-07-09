@@ -13,8 +13,7 @@ public class ArticleDTO {
     private Float net_weight;
     private String lot_number;
     private String order_number;
-    private Long clientId;
-    private String clientName;
+
 
     // getters and setters
 }

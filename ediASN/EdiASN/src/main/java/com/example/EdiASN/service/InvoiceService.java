@@ -1,23 +1,16 @@
 package com.example.EdiASN.service;
 
-import com.example.EdiASN.dto.ArticleDTO;
 import com.example.EdiASN.dto.InvoiceDTO;
-import com.example.EdiASN.entity.Article;
-import com.example.EdiASN.entity.Cardboard;
 import com.example.EdiASN.entity.Invoice;
 import com.example.EdiASN.entity.Client;
 import com.example.EdiASN.repository.InvoiceRepository;
 import com.example.EdiASN.repository.ClientRepository;
 import com.example.EdiASN.security.JwtService;
-import com.example.EdiASN.security.JwtUtils;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
-import jakarta.persistence.TypedQuery;
-import jakarta.persistence.criteria.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -27,8 +20,7 @@ public class InvoiceService {
     @Autowired
     private JwtService jwtService;
 
-    @Autowired
-    private JwtUtils jwtUtils;
+
     @PersistenceContext
     private EntityManager entityManager;
     @Autowired

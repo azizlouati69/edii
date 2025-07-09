@@ -26,20 +26,21 @@ public class JwtService {
     }
 
     public String generateAccessToken(User user) {
-        long accessTokenExpiration = 60 * 60 * 1000; // 60 minutes
-        return generateToken(user.getUsername(), user.getId(), accessTokenExpiration, "access");
+        long accessTokenExpiration =  60 * 60 * 1000; // 60 minutes
+        return generateToken(user.getUsername(), user.getId(), accessTokenExpiration, "access" ,  user.getRole());
     }
 
     public String generateRefreshToken(User user) {
         long refreshTokenExpiration = 7 * 24 * 60 * 60 * 1000; // 7 days
-        return generateToken(user.getUsername(), user.getId(), refreshTokenExpiration, "refresh");
+        return generateToken(user.getUsername(), user.getId(), refreshTokenExpiration, "refresh", user.getRole());
     }
 
-    private String generateToken(String username, Long userId, long expirationMillis, String type) {
+    private String generateToken(String username, Long userId, long expirationMillis, String type ,String role) {
         return Jwts.builder()
                 .setSubject(username)
                 .claim("userId", userId)
                 .claim("type", type)
+                .claim("role", role)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expirationMillis))
                 .signWith(getSignInKey(), SignatureAlgorithm.HS512)
@@ -64,6 +65,9 @@ public class JwtService {
 
     public Long extractUserId(String token) {
         return extractAllClaims(token).get("userId", Long.class);
+    }
+    public String extractRole(String token) {
+        return extractAllClaims(token).get("role", String.class);
     }
 
     public String extractType(String token) {

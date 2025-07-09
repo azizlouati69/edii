@@ -11,10 +11,9 @@ import com.example.Edi_dash.sevice.sellerservice;
  import java.util.Collections;
  import java.util.List;
 import java.util.Optional;
-@CrossOrigin(origins = "http://localhost:4200")
 
 @RestController
-@RequestMapping("/sellers/")
+@RequestMapping("edi-dash/sellers/")
 public class sellercontroller {
 
     private final sellerservice sellerservice;

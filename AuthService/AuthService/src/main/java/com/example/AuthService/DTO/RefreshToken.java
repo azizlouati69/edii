@@ -30,6 +30,8 @@ public class RefreshToken {
         this.createdAt = Instant.now();
     }
 
+
+
     public Long getId() {
         return id;
     }

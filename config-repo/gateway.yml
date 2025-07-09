@@ -1,0 +1,63 @@
+server:
+  port: 9999
+
+spring:
+  main:
+    web-application-type: reactive
+
+  application:
+    name: gateway
+  cloud:
+    config:
+      enabled: true
+    gateway:
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins:
+              - "http://localhost:4200"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders:
+              - "*"
+            allowCredentials: true
+      discovery:
+        locator:
+          enabled: false # Disabled to prevent automatic route creation
+      routes:
+        - id: auth-service
+          uri: lb://AuthService
+          predicates:
+            - Path=/auth/**
+          filters:
+            - PreserveHostHeader
+        - id: edi-dash
+          uri: lb://edi-dash
+          predicates:
+            - Path=/edi-dash/**
+          filters:
+            - PreserveHostHeader
+        - id: asn-service
+          uri: lb://EdiASN
+          predicates:
+            - Path=/edi-asn/**
+          filters:
+            - PreserveHostHeader
+
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    reactor.netty.http.client: DEBUG
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: gateway
+jwt:
+  secret: "Y2oTGqRyIT8Yz3s/fYAz5j2R3tVnSjbLG2l9EXtYiAnAYs1U1xB9bb08a9YYIXXQ75qVXAxu6v1yixF0UuUuWA=="

@@ -1,19 +1,17 @@
 package com.example.EdiASN.controller;
 
 import com.example.EdiASN.dto.ArticleDTO;
-import com.example.EdiASN.dto.SetDefaultCardboardRequest;
 import com.example.EdiASN.entity.Article;
 import com.example.EdiASN.security.JwtService;
 import com.example.EdiASN.service.ArticleService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/articles")
+@RequestMapping("/edi-asn/articles")
 public class ArticleController {
 
     @Autowired
@@ -101,18 +99,7 @@ public class ArticleController {
         return ResponseEntity.noContent().build();
     }
 
-    @PutMapping("/user/default-cardboard")
-    public ResponseEntity<Article> setDefaultCardboardUser(@RequestHeader("Authorization") String authHeader ,@RequestBody SetDefaultCardboardRequest request) {
-        Long userId = extractUserIdFromHeader(authHeader);
-        Article updated = articleService.setDefaultCardboardByUser(request.getArticleId(), request.getCardboardId(), userId);
-        return ResponseEntity.ok(updated);
-    }
 
-    @PutMapping("/default-cardboard")
-    public ResponseEntity<Article> setDefaultCardboardAdmin(@RequestBody SetDefaultCardboardRequest request) {
-        Article updated = articleService.setDefaultCardboardGlobal(request.getArticleId(), request.getCardboardId());
-        return ResponseEntity.ok(updated);
-    }
 
     @PostMapping
     public ResponseEntity<Article> createArticle(

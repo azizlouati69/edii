@@ -1,7 +1,8 @@
 package com.example.AuthService.DTO;
 
 import lombok.*;
-
+@AllArgsConstructor
+@NoArgsConstructor
 @Data
 public class AuthRequest {
     private String email;

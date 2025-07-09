@@ -1,13 +1,18 @@
 package com.example.EdiASN.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.util.ArrayList;
+import java.util.List;
+
 @Getter
 @Setter
 @Entity
-public class ArticleCardboard {
+public class ArticleClient {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -20,10 +25,12 @@ public class ArticleCardboard {
     @ManyToOne
     @JsonManagedReference
 
-    @JoinColumn(name = "cardboard_id")
-    private Cardboard cardboard;
+    @JoinColumn(name = "client_id")
+    private Client client;
 
-    private int quantityPerCardboard;
+    @OneToMany(mappedBy = "articleClient", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonBackReference
+    private List<ArticleClientCardboard> articleClientCardboards = new ArrayList<>();
     private Long userId;
 
 

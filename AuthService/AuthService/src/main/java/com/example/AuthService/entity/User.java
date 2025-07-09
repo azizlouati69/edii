@@ -3,6 +3,10 @@ package com.example.AuthService.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDate;
+
+@Getter
+@Setter
 @Entity
 @Table(name = "users")
 @Data
@@ -25,6 +29,13 @@ public class User {
     private String password;
     private String firstname;
     private String lastname;
+    private String bio;
+    private String sex;
+    private LocalDate birthday;
+
     private String role;
     private boolean enabled;
+    @Lob
+    @Column(name = "picture")
+    private byte[] picture;
 }

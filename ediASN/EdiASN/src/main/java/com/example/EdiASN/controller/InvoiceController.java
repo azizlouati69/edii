@@ -2,12 +2,8 @@ package com.example.EdiASN.controller;
 
 
 import com.example.EdiASN.dto.InvoiceDTO;
-import com.example.EdiASN.dto.InvoiceDTO;
-import com.example.EdiASN.dto.SetDefaultCardboardRequest;
-import com.example.EdiASN.entity.Invoice;
 import com.example.EdiASN.entity.Invoice;
 import com.example.EdiASN.security.JwtService;
-import com.example.EdiASN.service.InvoiceService;
 import com.example.EdiASN.service.InvoiceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -16,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/invoices")
+@RequestMapping("/edi-asn/invoices")
 public class InvoiceController {
 
     @Autowired

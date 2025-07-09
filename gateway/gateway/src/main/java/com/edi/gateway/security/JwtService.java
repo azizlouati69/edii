@@ -1,5 +1,4 @@
-package com.example.Edi_dash.security;
-
+package com.edi.gateway.security;
 
 import com.example.AuthService.entity.User;
 import io.jsonwebtoken.*;
@@ -7,6 +6,7 @@ import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -47,47 +47,73 @@ public class JwtService {
                 .compact();
     }
 
-    public boolean validateToken(String token) {
+    public boolean validateToken(String token) throws JwtException {
         try {
             Jwts.parserBuilder()
                     .setSigningKey(getSignInKey())
                     .build()
                     .parseClaimsJws(token);
             return true;
+        } catch (ExpiredJwtException e) {
+            throw e; // Propagate expired token exception
         } catch (JwtException | IllegalArgumentException e) {
-            return false;
+            return false; // Other invalid tokens
         }
     }
 
     public String extractUsername(String token) {
-        return extractAllClaims(token).getSubject();
+        try {
+            return extractAllClaims(token).getSubject();
+        } catch (ExpiredJwtException e) {
+            throw e; // Propagate expired token exception
+        }
     }
 
     public Long extractUserId(String token) {
-        return extractAllClaims(token).get("userId", Long.class);
+        try {
+            return extractAllClaims(token).get("userId", Long.class);
+        } catch (ExpiredJwtException e) {
+            throw e; // Propagate expired token exception
+        }
     }
 
     public String extractType(String token) {
-        return extractAllClaims(token).get("type", String.class);
+        try {
+            return extractAllClaims(token).get("type", String.class);
+        } catch (ExpiredJwtException e) {
+            throw e; // Propagate expired token exception
+        }
     }
 
     public boolean isTokenExpired(String token) {
-        return extractExpiration(token).before(new Date());
+        try {
+            return extractExpiration(token).before(new Date());
+        } catch (ExpiredJwtException e) {
+            return true; // Token is expired
+        }
     }
 
     public Date extractExpiration(String token) {
-        return extractAllClaims(token).getExpiration();
+        try {
+            return extractAllClaims(token).getExpiration();
+        } catch (ExpiredJwtException e) {
+            throw e; // Propagate expired token exception
+        }
     }
 
     public UserDetails loadUserFromToken(String token) {
-        return new org.springframework.security.core.userdetails.User(
-                extractUsername(token),
-                "",
-                Collections.emptyList()
-        );
+        try {
+            return new org.springframework.security.core.userdetails.User(
+                    extractUsername(token),
+                    "",
+                    Collections.emptyList()
+            );
+        } catch (ExpiredJwtException e) {
+            throw e; // Propagate expired token exception
+        }
     }
 
-    private Claims extractAllClaims(String token) {
+    public Claims extractAllClaims(String token) throws JwtException {
         return Jwts.parserBuilder()
                 .setSigningKey(getSignInKey())
                 .build()

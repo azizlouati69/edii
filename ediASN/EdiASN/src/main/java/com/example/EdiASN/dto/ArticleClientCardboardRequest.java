@@ -5,9 +5,10 @@ import lombok.Setter;
 
 @Setter
 @Getter
-public class ArticleCardboardRequest {
-    private Long articleId;
+public class ArticleClientCardboardRequest {
+    private Long articleClientId;
     private Long cardboardId;
+    private Long default_cardboardId;
     private Integer quantityPerCardboard;
 
     // Getters and setters

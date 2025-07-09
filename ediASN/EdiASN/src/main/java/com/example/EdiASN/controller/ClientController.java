@@ -1,9 +1,9 @@
 package com.example.EdiASN.controller;
 
-import com.example.EdiASN.dto.ClientDTO;
+ import com.example.EdiASN.dto.ClientDTO;
 import com.example.EdiASN.entity.Client;
-import com.example.EdiASN.security.JwtService;
-import com.example.EdiASN.service.ClientService;
+ import com.example.EdiASN.security.JwtService;
+ import com.example.EdiASN.service.ClientService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/clients")
+@RequestMapping("/edi-asn/clients")
 public class ClientController {
 
     @Autowired

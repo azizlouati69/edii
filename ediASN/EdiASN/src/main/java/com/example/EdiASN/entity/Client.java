@@ -1,6 +1,7 @@
 package com.example.EdiASN.entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -24,15 +25,17 @@ public class Client {
     private String nad;
     private String loc159;
     private String loc11;
-
     @OneToMany(mappedBy = "client", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonBackReference
-
-    private List<Article> articles = new ArrayList<>();
-    @OneToMany(mappedBy = "client", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonBackReference
-
     private List<Invoice> invoices = new ArrayList<>();
+    @OneToMany(mappedBy = "client", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonBackReference
+    private List<ArticleClient> articleClients = new ArrayList<>();
     private Long userId;
+    @ManyToOne
+    @JsonManagedReference
+
+    @JoinColumn(name = "invoicearticleclientcardboard_id")
+    private InvoiceArticleClientCardboard invoicearticleclientcardboard;
 
 }

@@ -1,0 +1,48 @@
+server:
+  port: 9090
+
+
+
+spring:
+
+  application:
+    name: edi-dash
+  datasource:
+    url: jdbc:mysql://localhost:3306/edi
+    username: root
+    password: azizaziz
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update  # Options: validate, update, create, create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+
+jwt:
+  secret: "Y2oTGqRyIT8Yz3s/fYAz5j2R3tVnSjbLG2l9EXtYiAnAYs1U1xB9bb08a9YYIXXQ75qVXAxu6v1yixF0UuUuWA=="
+eureka:
+  instance:
+    hostname: localhost   # Hostname for the instance
+    prefer-ip-address: true  # Use IP address instead of hostname for the instance
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      default-zone: http://localhost:8761/eureka/
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+logging:
+    level:
+      com.netflix.discovery: DEBUG
+      org.springframework.cloud: DEBUG
+      org.springframework.web.filter: DEBUG
+
+
+      org.springframework.security: DEBUG
+      org.springframework.web: DEBUG

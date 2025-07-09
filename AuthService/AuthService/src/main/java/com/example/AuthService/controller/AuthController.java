@@ -15,18 +15,27 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.transaction.Transactional;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.security.Principal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-@CrossOrigin(origins = "http://localhost:4200")
+
 @RestController
 @RequestMapping("/auth")
 
@@ -53,6 +62,87 @@ public class AuthController {
         this.emailService = emailService;
         this.VerificationTokenRepository= VerificationTokenRepository;
     }
+    @GetMapping("/profile")
+    public ResponseEntity<User> getUserProfile(@AuthenticationPrincipal UserDetails userDetails) {
+        User user = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        return ResponseEntity.ok(user);
+    }
+    @PutMapping("/change-password")
+    public ResponseEntity<Map<String, String>> changePassword(
+            @RequestBody ChangePasswordRequest request,
+            Principal principal) {
+
+        authService.changePassword(principal.getName(), request);
+        return ResponseEntity.ok(Map.of("message", "Password changed successfully"));
+    }
+
+    @PutMapping(value = "/profile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<User> updateProfile(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(required = false) String phone,
+            @RequestParam(required = false) String firstname,
+            @RequestParam(required = false) String lastname,
+            @RequestParam(required = false) String bio,
+            @RequestParam(required = false) String sex,
+            @RequestParam(required = false) LocalDate birthday,
+            @RequestPart(required = false) MultipartFile picture) throws IOException {
+
+        UpdateProfileRequest request = new UpdateProfileRequest();
+        request.setPhone(phone);
+        request.setFirstname(firstname);
+        request.setLastname(lastname);
+        request.setBio(bio);
+        request.setSex(sex);
+        request.setBirthday(birthday);
+        if (picture != null && !picture.isEmpty()) {
+            request.setPicture(picture.getBytes());
+        }
+
+        User updatedUser = authService.updateProfile(userDetails.getUsername(), request);
+        return ResponseEntity.ok(updatedUser);
+    }
+    @GetMapping("/profile/picture")
+    public ResponseEntity<byte[]> getProfilePicture(@AuthenticationPrincipal UserDetails userDetails) {
+        User user = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        byte[] picture = user.getPicture();
+        return ResponseEntity.ok()
+                .contentType(MediaType.IMAGE_JPEG) // Or IMAGE_PNG
+                .body(picture);
+    }
+    @GetMapping("/profile/bio")
+    public ResponseEntity<String> getBio(@AuthenticationPrincipal UserDetails userDetails) {
+        User user = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        String bio = user.getBio();
+        return ResponseEntity.ok()
+                .contentType(MediaType.TEXT_PLAIN)
+                .body(bio);
+    }
+    @GetMapping("/profile/firstname")
+    public ResponseEntity<String> getFirstname(@AuthenticationPrincipal UserDetails userDetails) {
+        User user = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        String firstname = user.getFirstname();
+        return ResponseEntity.ok()
+                .contentType(MediaType.TEXT_PLAIN)
+                .body(firstname);
+    }
+    @GetMapping("/profile/lastname")
+    public ResponseEntity<String> getLastname(@AuthenticationPrincipal UserDetails userDetails) {
+        User user = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        String lastname = user.getLastname();
+        return ResponseEntity.ok()
+                .contentType(MediaType.TEXT_PLAIN)
+                .body(lastname);
+    }
+
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@RequestBody RegisterRequest request) {
@@ -110,6 +200,30 @@ public class AuthController {
 
         // Return only access token to frontend
         return ResponseEntity.ok(Map.of("accessToken", authResponse.getAccessToken()));
+    }
+    @GetMapping("/role")
+    public ResponseEntity<Map<String, String>> getRole(@RequestHeader("Authorization") String authHeader) {
+        String token = authHeader.replace("Bearer ", "");
+        String role = jwtService.extractRole(token);
+        Map<String, String> response = new HashMap<>();
+        response.put("role", role);
+        return ResponseEntity.ok(response);
+    }
+    @GetMapping("/userid")
+    public ResponseEntity<Map<String, Long>> getUserid(@RequestHeader("Authorization") String authHeader) {
+        String token = authHeader.replace("Bearer ", "");
+         Long userid = jwtService.extractUserId(token);
+        Map<String, Long> response = new HashMap<>();
+        response.put("userid", userid);
+        return ResponseEntity.ok(response);
+    }
+    @DeleteMapping("/profile/picture")
+    public ResponseEntity<Map<String, String>> deleteProfilePicture(@AuthenticationPrincipal UserDetails userDetails) {
+        User user = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        user.setPicture(null);
+        userRepository.save(user);
+        return ResponseEntity.ok(Map.of("message", "Profile picture deleted successfully"));
     }
     @PostMapping("/refresh")
     public ResponseEntity<?> refreshToken(HttpServletRequest request, HttpServletResponse response) {
@@ -169,13 +283,13 @@ refreshTokenStore.put(username, newRefreshToken);
 
         VerificationToken verificationToken = VerificationTokenRepository.findByToken(token);
         if (verificationToken == null) {
-            response.put("message", "Token invalide.");
+            response.put("message", "lien invalide.");
             response.put("status", "error");
             return ResponseEntity.badRequest().body(response);
         }
 
         if (verificationToken.getExpiryDate().isBefore(LocalDateTime.now())) {
-            response.put("message", "Le token a expiré.");
+            response.put("message", "Le lien a expiré.");
             response.put("status", "error");
             return ResponseEntity.badRequest().body(response);
         }

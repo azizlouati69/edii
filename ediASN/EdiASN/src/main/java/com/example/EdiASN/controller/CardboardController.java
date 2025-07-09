@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/cardboards")
+@RequestMapping("/edi-asn/cardboards")
 public class CardboardController {
 
     @Autowired
